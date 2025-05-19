@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "485413914177",
+    "project_id": "miguelpavonlimones-tfg",
+    "storage_bucket": "miguelpavonlimones-tfg.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:485413914177:android:e943c31afa76746105e8c0",
+        "android_client_info": {
+          "package_name": "com.example.miguelpavonlimones_tfg"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKz4PPr22liMIZ-hkSbKPmwaDvGowhwtU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
