@@ -3,7 +3,6 @@ package com.example.miguelpavonlimones_tfg
 import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
-import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.PopupMenu
@@ -28,7 +27,7 @@ class pantalla2 : AppCompatActivity() {
         setContentView(R.layout.activity_pantalla2)
 
         auth = FirebaseAuth.getInstance()
-        database = FirebaseDatabase.getInstance()
+        database = FirebaseDatabase.getInstance("https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/")
 
         btnDropdownUsuario = findViewById(R.id.btnDropdownUsuario)
         btnDropdownEquipo = findViewById(R.id.btnDropdownEquipo)
@@ -39,23 +38,54 @@ class pantalla2 : AppCompatActivity() {
 
         val userId = auth.currentUser?.uid
 
+        // Si el usuario no está autenticado, volver al login
+        if (userId == null) {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+            return
+        }
 
-        if (userId != null) {
-            val userRef: DatabaseReference = database.getReference("usuarios").child(userId)
-            userRef.child("nombre").get().addOnSuccessListener { snapshot ->
-                val nombreUsuario = snapshot.value.toString()
-                btnDropdownUsuario.text = "$nombreUsuario ⌄"
+        val userRef: DatabaseReference = database.getReference("usuarios").child(userId)
+
+        // Verificar que el nodo del usuario exista
+        userRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (!snapshot.exists()) {
+                    auth.signOut()
+                    startActivity(Intent(this@pantalla2, MainActivity::class.java))
+                    finish()
+                } else {
+                    val nombreUsuario = snapshot.child("nombre").value?.toString() ?: "Usuario"
+                    btnDropdownUsuario.text = "$nombreUsuario "
+                }
             }
-        }
 
+            override fun onCancelled(error: DatabaseError) {
+                Toast.makeText(this@pantalla2, "Error al verificar usuario", Toast.LENGTH_SHORT).show()
+            }
+        })
 
-        val nombreEquipo = intent.getStringExtra("nombreEquipo")
-        if (!nombreEquipo.isNullOrEmpty()) {
-            btnDropdownEquipo.text = "$nombreEquipo ⌄"
-            btnCrearPartido.visibility = View.VISIBLE
-        } else {
-            btnDropdownEquipo.text = "Sin equipo ⌄"
-        }
+        // Cargar equipo asociado al usuario
+        val equipoRef = database.getReference("equipos")
+        equipoRef.orderByChild("usuarioId").equalTo(userId).limitToFirst(1)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        for (equipoSnap in snapshot.children) {
+                            val nombreEquipo = equipoSnap.child("nombreEquipo").value?.toString() ?: "Sin equipo"
+                            btnDropdownEquipo.text = "$nombreEquipo "
+                            btnCrearPartido.visibility = View.VISIBLE
+                        }
+                    } else {
+                        btnDropdownEquipo.text = "Sin equipo "
+                        btnCrearPartido.visibility = View.GONE
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(this@pantalla2, "Error al cargar el equipo", Toast.LENGTH_SHORT).show()
+                }
+            })
 
         // Menú usuario
         btnDropdownUsuario.setOnClickListener {
@@ -63,19 +93,10 @@ class pantalla2 : AppCompatActivity() {
             popup.menu.add("Perfil")
             popup.menu.add("Configuración")
             val cerrarSesion = popup.menu.add("Cerrar sesión")
-            cerrarSesion.setTitleCondensed("Cerrar sesión")
             cerrarSesion.setOnMenuItemClickListener {
                 auth.signOut()
                 startActivity(Intent(this, MainActivity::class.java))
                 finish()
-                true
-            }
-            // Poner en rojo "Cerrar sesión"
-            popup.setOnMenuItemClickListener { item ->
-                if (item.title == "Cerrar sesión") {
-                    item.title = "Cerrar sesión"
-                }
-                item.setTitle(item.title)
                 true
             }
             popup.show()

@@ -18,7 +18,7 @@ class RegistrarEquipoActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
 
         val etNombreEquipo = findViewById<EditText>(R.id.etNombreEquipo)
-        val spinnerCategoria = findViewById<Spinner>(R.id.spinnerCategoria)
+        val spinnerCategoria = findViewById<Spinner>(R.id.menuCategoria)
         val btnGuardar = findViewById<Button>(R.id.btnGuardarEquipo)
 
         // Configuración del Spinner
@@ -56,7 +56,7 @@ class RegistrarEquipoActivity : AppCompatActivity() {
                 .addOnSuccessListener {
                     Toast.makeText(this, "Equipo guardado correctamente", Toast.LENGTH_SHORT).show()
                     val intent = Intent(this, pantalla2::class.java)
-                    intent.putExtra("nombreEquipo", nombreEquipo) // 🔁 Pasamos el nombre del equipo
+                    intent.putExtra("nombreEquipo", nombreEquipo)
                     startActivity(intent)
                     finish()
                 }
