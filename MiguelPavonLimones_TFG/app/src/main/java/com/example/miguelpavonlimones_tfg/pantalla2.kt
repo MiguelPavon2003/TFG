@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.PopupMenu
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -35,7 +36,6 @@ class pantalla2 : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         database = FirebaseDatabase.getInstance("https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/")
 
-        // Views
         btnDropdownUsuario = findViewById(R.id.btnDropdownUsuario)
         btnDropdownEquipo = findViewById(R.id.btnDropdownEquipo)
         btnRegistrarEquipo = findViewById(R.id.btnRegistrarEquipo)
@@ -44,20 +44,24 @@ class pantalla2 : AppCompatActivity() {
 
         btnCrearPartido.visibility = View.GONE
 
-        // Setup RecyclerView
         recyclerViewPartidos.layoutManager = LinearLayoutManager(this)
-        partidoAdapter = PartidoAdapter(listaPartidos) { partidoSeleccionado ->
-            val intent = Intent(this, PantallaDeEstadisticaActivity::class.java)
-            intent.putExtra("fecha", partidoSeleccionado.fecha)
-            intent.putExtra("rival", partidoSeleccionado.rival)
-            intent.putExtra("tipo", partidoSeleccionado.tipo)
-            intent.putExtra("equipo", partidoSeleccionado.nombreEquipo)
-            startActivity(intent)
-        }
+        partidoAdapter = PartidoAdapter(listaPartidos,
+            onItemClick = { partidoSeleccionado ->
+                val intent = Intent(this, PantallaDeEstadisticaActivity::class.java)
+                intent.putExtra("fecha", partidoSeleccionado.fecha)
+                intent.putExtra("rival", partidoSeleccionado.rival)
+                intent.putExtra("tipo", partidoSeleccionado.tipo)
+                intent.putExtra("equipo", partidoSeleccionado.nombreEquipo)
+                startActivity(intent)
+            },
+            onDeleteClick = { partido ->
+                mostrarConfirmacionEliminacion(partido)
+            }
+        )
+
         recyclerViewPartidos.adapter = partidoAdapter
 
         val userId = auth.currentUser?.uid
-
         if (userId == null) {
             startActivity(Intent(this, MainActivity::class.java))
             finish()
@@ -91,8 +95,6 @@ class pantalla2 : AppCompatActivity() {
                         nombreEquipoActual = equipoSnap.child("nombreEquipo").value?.toString() ?: "Sin equipo"
                         btnDropdownEquipo.text = "$nombreEquipoActual "
                         btnCrearPartido.visibility = View.VISIBLE
-
-                        // Solo cargamos partidos después de tener el nombre de equipo
                         cargarPartidos(userId)
                     } else {
                         nombreEquipoActual = "Sin equipo"
@@ -106,7 +108,6 @@ class pantalla2 : AppCompatActivity() {
                 }
             })
 
-        // Menús
         btnDropdownUsuario.setOnClickListener {
             val popup = PopupMenu(this, btnDropdownUsuario, Gravity.END)
             popup.menu.add("Perfil")
@@ -149,6 +150,7 @@ class pantalla2 : AppCompatActivity() {
                     for (snap in snapshot.children) {
                         val partido = snap.getValue(Partido::class.java)
                         partido?.let {
+                            it.id = snap.key // Guardamos el ID del nodo para poder borrarlo luego
                             if (it.nombreEquipo.isNullOrBlank()) {
                                 it.nombreEquipo = nombreEquipoActual
                             }
@@ -157,7 +159,6 @@ class pantalla2 : AppCompatActivity() {
                     }
                     listaPartidos.sortByDescending { it.fecha }
                     partidoAdapter.notifyDataSetChanged()
-
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -166,8 +167,27 @@ class pantalla2 : AppCompatActivity() {
             })
     }
 
+    private fun mostrarConfirmacionEliminacion(partido: Partido) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Eliminar partido")
+        builder.setMessage("¿Estás seguro de que quieres eliminar este partido?")
+        builder.setPositiveButton("Sí") { _, _ ->
+            partido.id?.let { id ->
+                val ref = database.getReference("partidos").child(id)
+                ref.removeValue().addOnSuccessListener {
+                    listaPartidos.remove(partido)
+                    partidoAdapter.notifyDataSetChanged()
+                }.addOnFailureListener {
+                    mostrarAlerta("Error", "No se pudo eliminar el partido: ${it.message}")
+                }
+            }
+        }
+        builder.setNegativeButton("No", null)
+        builder.show()
+    }
+
     private fun mostrarAlerta(titulo: String, mensaje: String) {
-        val builder = android.app.AlertDialog.Builder(this)
+        val builder = AlertDialog.Builder(this)
         builder.setTitle(titulo)
             .setMessage(mensaje)
             .setPositiveButton("OK", null)

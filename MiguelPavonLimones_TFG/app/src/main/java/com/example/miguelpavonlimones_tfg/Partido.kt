@@ -7,7 +7,8 @@ data class Partido(
     var nombreEquipo: String? = null,
     var usuarioId: String = "",
     var local: Boolean = true,
-    var jornada: String? = null
+    var jornada: String? = null,
+    @Transient var id:String? = null
 )
 
 

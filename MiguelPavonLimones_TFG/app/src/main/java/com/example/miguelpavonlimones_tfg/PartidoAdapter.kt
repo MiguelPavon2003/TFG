@@ -1,14 +1,16 @@
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.miguelpavonlimones_tfg.Partido
 import com.example.miguelpavonlimones_tfg.R
 
 class PartidoAdapter(
-    private val lista: List<Partido>,
-    private val onItemClick: (Partido) -> Unit
+    private val lista: MutableList<Partido>,
+    private val onItemClick: (Partido) -> Unit,
+    private val onDeleteClick: (Partido) -> Unit
 ) : RecyclerView.Adapter<PartidoAdapter.PartidoViewHolder>() {
 
     class PartidoViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
@@ -18,6 +20,7 @@ class PartidoAdapter(
         val tvTipo: TextView = view.findViewById(R.id.tvTipo)
         val tvLocalVisitante: TextView = view.findViewById(R.id.tvLocalVisitante)
         val tvJornada: TextView = view.findViewById(R.id.tvJornada)
+        val btnBasura: ImageView = view.findViewById(R.id.btnBasura)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PartidoViewHolder {
@@ -44,9 +47,11 @@ class PartidoAdapter(
         holder.view.setOnClickListener {
             onItemClick(partido)
         }
+
+        holder.btnBasura.setOnClickListener {
+            onDeleteClick(partido)
+        }
     }
 
     override fun getItemCount(): Int = lista.size
 }
-
-
