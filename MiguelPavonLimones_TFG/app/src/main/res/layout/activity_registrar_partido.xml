@@ -42,7 +42,39 @@
             android:id="@+id/spinnerTipo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="16dp" />
+
+        <RadioGroup
+            android:id="@+id/radioGroupLocalVisitante"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/radioLocal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Local" />
+
+            <RadioButton
+                android:id="@+id/radioVisitante"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Visitante"
+                android:layout_marginStart="32dp"/>
+        </RadioGroup>
+
+        <EditText
+            android:id="@+id/etJornada"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Jornada (solo liga)"
+            android:padding="12dp"
+            android:backgroundTint="#CCCCCC"
+            android:layout_marginBottom="16dp"
+            android:inputType="number"
+            android:visibility="gone" />
 
         <Button
             android:id="@+id/btnGuardarPartido"

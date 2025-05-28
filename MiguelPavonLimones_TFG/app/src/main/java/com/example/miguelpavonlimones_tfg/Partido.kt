@@ -5,6 +5,9 @@ data class Partido(
     var rival: String = "",
     var tipo: String = "",
     var nombreEquipo: String? = null,
-    var usuarioId: String = ""
+    var usuarioId: String = "",
+    var local: Boolean = true,
+    var jornada: String? = null
 )
+
 

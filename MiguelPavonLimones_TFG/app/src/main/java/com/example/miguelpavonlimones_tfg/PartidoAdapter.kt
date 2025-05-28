@@ -13,9 +13,11 @@ class PartidoAdapter(
 
     class PartidoViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         val tvNombreEquipo: TextView = view.findViewById(R.id.tvNombreEquipo)
-        val tvFecha: TextView = view.findViewById(R.id.tvFecha)
         val tvRival: TextView = view.findViewById(R.id.tvRival)
+        val tvFecha: TextView = view.findViewById(R.id.tvFecha)
         val tvTipo: TextView = view.findViewById(R.id.tvTipo)
+        val tvLocalVisitante: TextView = view.findViewById(R.id.tvLocalVisitante)
+        val tvJornada: TextView = view.findViewById(R.id.tvJornada)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PartidoViewHolder {
@@ -25,10 +27,19 @@ class PartidoAdapter(
 
     override fun onBindViewHolder(holder: PartidoViewHolder, position: Int) {
         val partido = lista[position]
-        holder.tvNombreEquipo.text = partido.nombreEquipo ?: "Sin equipo"
-        holder.tvFecha.text = partido.fecha
-        holder.tvRival.text = partido.rival
-        holder.tvTipo.text = partido.tipo
+
+        holder.tvNombreEquipo.text = partido.nombreEquipo ?: "Equipo"
+        holder.tvRival.text = "Rival: ${partido.rival}"
+        holder.tvFecha.text = "Fecha: ${partido.fecha}"
+        holder.tvTipo.text = "Tipo: ${partido.tipo}"
+        holder.tvLocalVisitante.text = if (partido.local) "Juega como: Local" else "Juega como: Visitante"
+
+        if (partido.tipo == "Liga" && !partido.jornada.isNullOrBlank()) {
+            holder.tvJornada.visibility = View.VISIBLE
+            holder.tvJornada.text = "Jornada: ${partido.jornada}"
+        } else {
+            holder.tvJornada.visibility = View.GONE
+        }
 
         holder.view.setOnClickListener {
             onItemClick(partido)
@@ -37,4 +48,5 @@ class PartidoAdapter(
 
     override fun getItemCount(): Int = lista.size
 }
+
 

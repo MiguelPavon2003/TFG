@@ -3,103 +3,113 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/gris_azulado"
     android:padding="16dp">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnDropdownEquipo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Equipo"
-        android:textAllCaps="false"
-        android:textColor="@android:color/black"
-        android:backgroundTint="@android:color/transparent"
-        app:icon="@drawable/mayor"
-        app:iconGravity="textEnd"
-        app:iconPadding="4dp"
-        app:iconSize="16dp"
-        app:iconTint="@android:color/black"
-        app:strokeColor="@android:color/darker_gray"
-        app:strokeWidth="2dp"
-        app:cornerRadius="12dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnDropdownUsuario"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Usuario"
-        android:textAllCaps="false"
-        android:textColor="@android:color/black"
-        android:backgroundTint="@android:color/transparent"
-        app:icon="@drawable/mayor"
-        app:iconGravity="textEnd"
-        app:iconPadding="4dp"
-        app:iconSize="16dp"
-        app:iconTint="@android:color/black"
-        app:strokeColor="@android:color/darker_gray"
-        app:strokeWidth="2dp"
-        app:cornerRadius="12dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <View
-        android:id="@+id/lineaSuperior"
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardHeader"
         android:layout_width="0dp"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/btnDropdownEquipo"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardElevation="4dp"
+        app:cardCornerRadius="16dp"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnRegistrarEquipo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Registrar equipo"
-        android:textColor="@android:color/white"
-        android:textAllCaps="false"
-        android:layout_marginTop="24dp"
-        app:backgroundTint="@color/blue"
-        app:cornerRadius="12dp"
-        app:strokeColor="@color/blue"
-        app:strokeWidth="2dp"
-        app:layout_constraintTop_toBottomOf="@id/lineaSuperior"
-        app:layout_constraintStart_toStartOf="parent" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:orientation="horizontal">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnCrearPartido"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Crear partido"
-        android:textColor="@android:color/white"
-        android:textAllCaps="false"
-        android:layout_marginTop="24dp"
-        app:backgroundTint="@color/blue"
-        app:cornerRadius="12dp"
-        app:strokeColor="@color/blue"
-        app:strokeWidth="2dp"
-        app:layout_constraintTop_toBottomOf="@id/lineaSuperior"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDropdownEquipo"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Equipo"
+                android:textColor="@color/black"
+                android:textAllCaps="false"
+                app:icon="@drawable/mayor"
+                app:iconGravity="textEnd"
+                app:iconTint="@color/black"
+                app:cornerRadius="16dp"
+                app:backgroundTint="@color/white"
+                app:strokeColor="@color/gris"
+                app:strokeWidth="1dp" />
 
+            <Space android:layout_width="12dp" android:layout_height="wrap_content" />
 
-    <View
-        android:id="@+id/lineaInferior"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDropdownUsuario"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Usuario"
+                android:textColor="@android:color/black"
+                android:textAllCaps="false"
+                app:icon="@drawable/mayor"
+                app:iconGravity="textEnd"
+                app:iconTint="@color/black"
+                app:cornerRadius="16dp"
+                app:backgroundTint="@color/white"
+                app:strokeColor="@color/gris"
+                app:strokeWidth="1dp" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardActions"
         android:layout_width="0dp"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray"
-        android:layout_marginTop="24dp"
-        app:layout_constraintTop_toBottomOf="@id/btnRegistrarEquipo"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:cardElevation="4dp"
+        app:cardCornerRadius="16dp"
+        app:layout_constraintTop_toBottomOf="@id/cardHeader"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRegistrarEquipo"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Registrar equipo"
+                android:textColor="@color/white"
+                android:textAllCaps="false"
+                app:backgroundTint="@color/blue"
+                app:cornerRadius="16dp" />
+
+            <Space android:layout_width="12dp" android:layout_height="wrap_content" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCrearPartido"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Crear partido"
+                android:textColor="@color/white"
+                android:textAllCaps="false"
+                app:backgroundTint="@color/blue"
+                app:cornerRadius="16dp" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewPartidos"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
-        app:layout_constraintTop_toBottomOf="@+id/lineaInferior"
+        android:paddingTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/cardActions"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

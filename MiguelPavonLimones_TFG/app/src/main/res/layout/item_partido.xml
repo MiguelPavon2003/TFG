@@ -12,36 +12,65 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
-        <TextView
-            android:id="@+id/tvNombreEquipo"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Nombre del Equipo"
-            android:textAppearance="?attr/textAppearanceSubtitle1"
-            android:textStyle="bold" />
+            android:orientation="vertical"
+            android:layout_weight="1">
 
-        <TextView
-            android:id="@+id/tvRival"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Rival"
-            android:textAppearance="?attr/textAppearanceBody2" />
+            <TextView
+                android:id="@+id/tvNombreEquipo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Nombre del Equipo"
+                android:textAppearance="?attr/textAppearanceSubtitle1"
+                android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/tvFecha"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Fecha"
-            android:textAppearance="?attr/textAppearanceBody2" />
+            <TextView
+                android:id="@+id/tvRival"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rival"
+                android:textAppearance="?attr/textAppearanceBody2" />
 
-        <TextView
-            android:id="@+id/tvTipo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tipo de Partido"
-            android:textAppearance="?attr/textAppearanceBody2" />
+            <TextView
+                android:id="@+id/tvFecha"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Fecha"
+                android:textAppearance="?attr/textAppearanceBody2" />
 
+            <TextView
+                android:id="@+id/tvTipo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tipo de Partido"
+                android:textAppearance="?attr/textAppearanceBody2" />
+
+            <TextView
+                android:id="@+id/tvLocalVisitante"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Local o Visitante"
+                android:textAppearance="?attr/textAppearanceBody2" />
+
+            <TextView
+                android:id="@+id/tvJornada"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Jornada"
+                android:textAppearance="?attr/textAppearanceBody2" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnBasura"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/basura"
+            android:layout_marginStart="8dp"
+            android:contentDescription="Eliminar" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

@@ -7,4 +7,6 @@
     <color name="azul_claro">#BBE1E4</color>
     <color name="azul_oscuro">#1976D2</color>
     <color name="naranja">#FF9600</color>
+    <color name="gris">#BDBDBD</color>
+    <color name="gris_azulado">#AED0E4</color>
 </resources>
