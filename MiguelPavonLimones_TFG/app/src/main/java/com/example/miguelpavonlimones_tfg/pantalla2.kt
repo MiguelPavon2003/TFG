@@ -1,13 +1,14 @@
 package com.example.miguelpavonlimones_tfg
 
+import PartidoAdapter
 import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
-import android.widget.Button
 import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
@@ -19,8 +20,13 @@ class pantalla2 : AppCompatActivity() {
 
     private lateinit var btnDropdownUsuario: MaterialButton
     private lateinit var btnDropdownEquipo: MaterialButton
-    private lateinit var btnRegistrarEquipo: Button
-    private lateinit var btnCrearPartido: Button
+    private lateinit var btnRegistrarEquipo: MaterialButton
+    private lateinit var btnCrearPartido: MaterialButton
+    private lateinit var recyclerViewPartidos: RecyclerView
+
+    private var nombreEquipoActual: String = ""
+    private val listaPartidos = mutableListOf<Partido>()
+    private lateinit var partidoAdapter: PartidoAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,25 +35,36 @@ class pantalla2 : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         database = FirebaseDatabase.getInstance("https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/")
 
+        // Views
         btnDropdownUsuario = findViewById(R.id.btnDropdownUsuario)
         btnDropdownEquipo = findViewById(R.id.btnDropdownEquipo)
         btnRegistrarEquipo = findViewById(R.id.btnRegistrarEquipo)
         btnCrearPartido = findViewById(R.id.btnCrearPartido)
+        recyclerViewPartidos = findViewById(R.id.recyclerViewPartidos)
 
         btnCrearPartido.visibility = View.GONE
 
+        // Setup RecyclerView
+        recyclerViewPartidos.layoutManager = LinearLayoutManager(this)
+        partidoAdapter = PartidoAdapter(listaPartidos) { partidoSeleccionado ->
+            val intent = Intent(this, PantallaDeEstadisticaActivity::class.java)
+            intent.putExtra("fecha", partidoSeleccionado.fecha)
+            intent.putExtra("rival", partidoSeleccionado.rival)
+            intent.putExtra("tipo", partidoSeleccionado.tipo)
+            intent.putExtra("equipo", partidoSeleccionado.nombreEquipo)
+            startActivity(intent)
+        }
+        recyclerViewPartidos.adapter = partidoAdapter
+
         val userId = auth.currentUser?.uid
 
-        // Si el usuario no está autenticado, volver al login
         if (userId == null) {
             startActivity(Intent(this, MainActivity::class.java))
             finish()
             return
         }
 
-        val userRef: DatabaseReference = database.getReference("usuarios").child(userId)
-
-        // Verificar que el nodo del usuario exista
+        val userRef = database.getReference("usuarios").child(userId)
         userRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (!snapshot.exists()) {
@@ -61,33 +78,35 @@ class pantalla2 : AppCompatActivity() {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@pantalla2, "Error al verificar usuario", Toast.LENGTH_SHORT).show()
+                mostrarAlerta("Error", "Error al verificar usuario")
             }
         })
 
-        // Cargar equipo asociado al usuario
         val equipoRef = database.getReference("equipos")
-        equipoRef.orderByChild("usuarioId").equalTo(userId).limitToFirst(1)
+        equipoRef.orderByChild("usuarioId").equalTo(userId)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     if (snapshot.exists()) {
-                        for (equipoSnap in snapshot.children) {
-                            val nombreEquipo = equipoSnap.child("nombreEquipo").value?.toString() ?: "Sin equipo"
-                            btnDropdownEquipo.text = "$nombreEquipo "
-                            btnCrearPartido.visibility = View.VISIBLE
-                        }
+                        val equipoSnap = snapshot.children.first()
+                        nombreEquipoActual = equipoSnap.child("nombreEquipo").value?.toString() ?: "Sin equipo"
+                        btnDropdownEquipo.text = "$nombreEquipoActual "
+                        btnCrearPartido.visibility = View.VISIBLE
+
+                        // Solo cargamos partidos después de tener el nombre de equipo
+                        cargarPartidos(userId)
                     } else {
-                        btnDropdownEquipo.text = "Sin equipo "
+                        nombreEquipoActual = "Sin equipo"
+                        btnDropdownEquipo.text = nombreEquipoActual
                         btnCrearPartido.visibility = View.GONE
                     }
                 }
 
                 override fun onCancelled(error: DatabaseError) {
-                    Toast.makeText(this@pantalla2, "Error al cargar el equipo", Toast.LENGTH_SHORT).show()
+                    mostrarAlerta("Error", "Error al cargar equipo")
                 }
             })
 
-        // Menú usuario
+        // Menús
         btnDropdownUsuario.setOnClickListener {
             val popup = PopupMenu(this, btnDropdownUsuario, Gravity.END)
             popup.menu.add("Perfil")
@@ -102,7 +121,6 @@ class pantalla2 : AppCompatActivity() {
             popup.show()
         }
 
-        // Menú equipo
         btnDropdownEquipo.setOnClickListener {
             val popup = PopupMenu(this, btnDropdownEquipo, Gravity.START)
             popup.menu.add("Ver equipo")
@@ -116,7 +134,43 @@ class pantalla2 : AppCompatActivity() {
         }
 
         btnCrearPartido.setOnClickListener {
-            Toast.makeText(this, "Aquí iría la lógica para crear partido", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, RegistrarPartidoActivity::class.java)
+            intent.putExtra("nombreEquipo", nombreEquipoActual)
+            startActivity(intent)
         }
+    }
+
+    private fun cargarPartidos(userId: String) {
+        val partidosRef = database.getReference("partidos")
+        partidosRef.orderByChild("usuarioId").equalTo(userId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    listaPartidos.clear()
+                    for (snap in snapshot.children) {
+                        val partido = snap.getValue(Partido::class.java)
+                        partido?.let {
+                            if (it.nombreEquipo.isNullOrBlank()) {
+                                it.nombreEquipo = nombreEquipoActual
+                            }
+                            listaPartidos.add(it)
+                        }
+                    }
+                    listaPartidos.sortByDescending { it.fecha }
+                    partidoAdapter.notifyDataSetChanged()
+
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    mostrarAlerta("Error", "No se pudieron cargar los partidos: ${error.message}")
+                }
+            })
+    }
+
+    private fun mostrarAlerta(titulo: String, mensaje: String) {
+        val builder = android.app.AlertDialog.Builder(this)
+        builder.setTitle(titulo)
+            .setMessage(mensaje)
+            .setPositiveButton("OK", null)
+            .show()
     }
 }
