@@ -9,4 +9,6 @@
     <color name="naranja">#FF9600</color>
     <color name="gris">#BDBDBD</color>
     <color name="gris_azulado">#AED0E4</color>
+    <color name="verde">#0BA90F</color>
+    <color name="rojo">#CD0808</color>
 </resources>

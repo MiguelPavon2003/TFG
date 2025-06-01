@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/naranja"
+    android:background="@drawable/fondo_pantalla"
     android:padding="24dp"
     tools:context=".MainActivity">
 
@@ -14,7 +14,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="PANTALLA DE REGISTRO"
-        android:textColor="@color/black"
+        android:textColor="@color/purple"
         android:textSize="25sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/cardView"
@@ -101,7 +101,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="¿Ya tienes una cuenta? Inicia sesión"
-        android:textColor="@color/black"
+        android:textColor="@color/purple"
         android:textSize="17sp"
         android:textStyle="bold"
         android:layout_marginTop="16dp"

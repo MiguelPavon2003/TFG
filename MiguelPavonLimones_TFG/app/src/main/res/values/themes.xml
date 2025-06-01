@@ -5,7 +5,7 @@
     </style>
 
     <style name="Theme.MiguelPavonLimones_TFG.Splash" parent="Base.Theme.MiguelPavonLimones_TFG">
-        <item name="android:windowSplashScreenBackground">@color/gris_azulado</item>
+        <item name="android:windowSplashScreenBackground">@color/white</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
     </style>
 

@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/azul_claro"
+    android:background="@drawable/fondo_pantalla"
     android:padding="24dp">
 
   <TextView

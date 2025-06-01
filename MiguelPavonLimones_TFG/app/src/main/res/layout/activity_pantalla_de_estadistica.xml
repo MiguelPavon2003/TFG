@@ -1,19 +1,247 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".PantallaDeEstadisticaActivity">
+    android:padding="16dp"
+    android:background="@color/azul_claro">
 
-    <TextView
+
+    <LinearLayout
+        android:id="@+id/layoutInfoPartido"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_alignParentTop="true"
+        android:layout_marginBottom="8dp"
+        android:paddingEnd="8dp"
+        android:paddingStart="8dp">
+
+        <LinearLayout
+            android:id="@+id/layoutInfoEquipoIzquierda"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvEquipo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Equipo: "
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/tvPuntosEquipo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Puntos: 0"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/tvJornada"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Jornada: "
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutInfoRivalDerecha"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <TextView
+                android:id="@+id/tvRival"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rival: "
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/tvFecha"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Fecha: "
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+
+    <ImageView
+        android:id="@+id/imgCancha"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_below="@id/layoutInfoPartido"
+        android:scaleType="fitCenter"
+        android:src="@drawable/cancha_basket" />
+
+
+    <LinearLayout
+        android:id="@+id/layoutBotonesTop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hola"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"/>
+        android:layout_below="@id/imgCancha"
+        android:layout_marginTop="16dp"
+        android:layout_alignParentEnd="true"
+        android:orientation="horizontal">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <Button
+            android:id="@+id/btnExportarPDF"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Exportar PDF"
+            android:textColor="@color/black"
+            android:backgroundTint="@color/verde" />
+
+        <Button
+            android:id="@+id/btnGraficas"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ver Gráfica"
+            android:textColor="@color/black"
+            android:backgroundTint="@color/rojo"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+
+    <Button
+        android:id="@+id/btnEmpezarPartido"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/layoutBotonesTop"
+        android:layout_marginTop="16dp"
+        android:text="Empezar Partido"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@color/blue" />
+
+
+    <ScrollView
+        android:id="@+id/scrollEstadisticas"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btnEmpezarPartido"
+        android:layout_above="@id/btnAcabarPartido"
+        android:layout_marginTop="16dp">
+
+        <LinearLayout
+            android:id="@+id/layoutEstadisticas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+
+            <LinearLayout
+                android:id="@+id/filaTiros"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <Button
+                    android:id="@+id/btnTiroMetido"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Tiro Metido"
+                    android:layout_margin="4dp" />
+
+                <Button
+                    android:id="@+id/btnTiroFallado"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Tiro Fallado"
+                    android:layout_margin="4dp" />
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:id="@+id/filaRebotesAsistencias"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <Button
+                    android:id="@+id/btnRebotes"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Rebote"
+                    android:layout_margin="4dp" />
+
+                <Button
+                    android:id="@+id/btnAsistencias"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Asistencia"
+                    android:layout_margin="4dp" />
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:id="@+id/filaRobosTapones"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <Button
+                    android:id="@+id/btnRobos"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Robo"
+                    android:layout_margin="4dp" />
+
+                <Button
+                    android:id="@+id/btnTapones"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Tapón"
+                    android:layout_margin="4dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/filaFaltasPerdidas"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <Button
+                    android:id="@+id/btnFaltas"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Falta"
+                    android:layout_margin="4dp" />
+
+                <Button
+                    android:id="@+id/btnPerdidas"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Pérdida"
+                    android:layout_margin="4dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <Button
+        android:id="@+id/btnAcabarPartido"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:text="Acabar Partido"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@color/blue" />
+</RelativeLayout>

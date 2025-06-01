@@ -48,10 +48,12 @@ class pantalla2 : AppCompatActivity() {
         partidoAdapter = PartidoAdapter(listaPartidos,
             onItemClick = { partidoSeleccionado ->
                 val intent = Intent(this, PantallaDeEstadisticaActivity::class.java)
+                intent.putExtra("partidoId", partidoSeleccionado.id)
                 intent.putExtra("fecha", partidoSeleccionado.fecha)
                 intent.putExtra("rival", partidoSeleccionado.rival)
+                intent.putExtra("jornada", partidoSeleccionado.jornada.toString())
                 intent.putExtra("tipo", partidoSeleccionado.tipo)
-                intent.putExtra("equipo", partidoSeleccionado.nombreEquipo)
+                intent.putExtra("nombreEquipo", partidoSeleccionado.nombreEquipo)
                 startActivity(intent)
             },
             onDeleteClick = { partido ->
@@ -150,7 +152,7 @@ class pantalla2 : AppCompatActivity() {
                     for (snap in snapshot.children) {
                         val partido = snap.getValue(Partido::class.java)
                         partido?.let {
-                            it.id = snap.key // Guardamos el ID del nodo para poder borrarlo luego
+                            it.id = snap.key
                             if (it.nombreEquipo.isNullOrBlank()) {
                                 it.nombreEquipo = nombreEquipoActual
                             }
