@@ -100,7 +100,7 @@
             android:backgroundTint="@color/verde" />
 
         <Button
-            android:id="@+id/btnGraficas"
+            android:id="@+id/btnVerGraficas"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Ver Gráfica"

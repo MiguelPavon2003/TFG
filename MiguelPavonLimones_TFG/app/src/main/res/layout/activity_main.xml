@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/fondo_pantalla"
+    android:background="@drawable/pelota_fondo"
     android:padding="24dp"
     tools:context=".MainActivity">
 
@@ -47,7 +47,7 @@
                 android:hint="Nombre de usuario"
                 android:inputType="textPersonName"
                 android:drawableStart="@android:drawable/ic_menu_edit"
-                android:backgroundTint="#CCCCCC"
+                android:backgroundTint="@color/black"
                 android:padding="12dp"
                 android:layout_marginBottom="16dp" />
 
@@ -58,7 +58,7 @@
                 android:hint="Correo electrónico"
                 android:inputType="textEmailAddress"
                 android:drawableStart="@android:drawable/ic_dialog_email"
-                android:backgroundTint="#CCCCCC"
+                android:backgroundTint="@color/black"
                 android:padding="12dp"
                 android:layout_marginBottom="16dp" />
 
@@ -69,7 +69,7 @@
                 android:hint="Contraseña"
                 android:inputType="textPassword"
                 android:drawableStart="@android:drawable/ic_lock_idle_lock"
-                android:backgroundTint="#CCCCCC"
+                android:backgroundTint="@color/black"
                 android:padding="12dp"
                 android:layout_marginBottom="24dp" />
 

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--COLORES DE LA APLICACION-->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="purple">#6200EE</color>
@@ -11,4 +12,18 @@
     <color name="gris_azulado">#AED0E4</color>
     <color name="verde">#0BA90F</color>
     <color name="rojo">#CD0808</color>
+
+
+    <!--COLORES GRAFICOS DE BARRAS-->
+    <color name="colorTriple">#2196F3</color>
+    <color name="colorTiro2">#4CAF50</color>
+    <color name="colorTiroLibre">#F44336</color>
+    <color name="colorReboteOf">#FF9800</color>
+    <color name="colorReboteDef">#9c27B0</color>
+    <color name="colorReboteTot">#795548</color>
+    <color name="colorAsist">#3f51b5</color>
+    <color name="colorRobos">#00bcd4</color>
+    <color name="colorTapones">#8bc34a</color>
+    <color name="colorFaltas">#e91e63</color>
+    <color name="colorPerdidas">#607d8b</color>
 </resources>
