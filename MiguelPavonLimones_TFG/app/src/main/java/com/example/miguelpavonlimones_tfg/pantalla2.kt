@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.PopupMenu
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -112,8 +113,7 @@ class pantalla2 : AppCompatActivity() {
 
         btnDropdownUsuario.setOnClickListener {
             val popup = PopupMenu(this, btnDropdownUsuario, Gravity.END)
-            popup.menu.add("Perfil")
-            popup.menu.add("Configuración")
+            val eliminarUsuario = popup.menu.add("Eliminar usuario")
             val cerrarSesion = popup.menu.add("Cerrar sesión")
             cerrarSesion.setOnMenuItemClickListener {
                 auth.signOut()
@@ -121,14 +121,74 @@ class pantalla2 : AppCompatActivity() {
                 finish()
                 true
             }
+            eliminarUsuario.setOnMenuItemClickListener {
+                val usuario = auth.currentUser
+                val uid = usuario?.uid
+
+                if (usuario != null && uid != null) {
+                    // Eliminar datos relacionados
+                    val databaseRef = database.reference
+                    val updates = hashMapOf<String, Any?>()
+                    updates["usuarios/$uid"] = null
+                    updates["partidos"] = null
+                    updates["equipos"] = null
+
+                    databaseRef.updateChildren(updates).addOnCompleteListener {
+                        usuario.delete().addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                mostrarAlerta("Éxito", "Usuario eliminado completamente")
+                                startActivity(Intent(this, MainActivity::class.java))
+                                finish()
+                            } else {
+                                mostrarAlerta("Error", "No se pudo eliminar el usuario: ${task.exception?.message}")
+                            }
+                        }
+                    }
+                } else {
+                    mostrarAlerta("Error", "No se pudo obtener el usuario actual")
+                }
+                true
+            }
             popup.show()
         }
 
         btnDropdownEquipo.setOnClickListener {
             val popup = PopupMenu(this, btnDropdownEquipo, Gravity.START)
-            popup.menu.add("Ver equipo")
-            popup.menu.add("Editar equipo")
-            popup.menu.add("Borrar equipo")
+            val borrarEquipo = popup.menu.add("Borrar equipo")
+
+            borrarEquipo.setOnMenuItemClickListener {
+                val uid = auth.currentUser?.uid
+
+                if (uid != null) {
+                    val ref = database.getReference("equipos")
+                    ref.orderByChild("usuarioId").equalTo(uid)
+                        .addListenerForSingleValueEvent(object : ValueEventListener {
+                            override fun onDataChange(snapshot: DataSnapshot) {
+                                if (snapshot.exists()) {
+                                    for (equipoSnap in snapshot.children) {
+                                        equipoSnap.ref.removeValue()
+                                    }
+                                    mostrarAlerta("Éxito", "Equipo eliminado correctamente")
+
+                                    btnRegistrarEquipo.visibility = View.VISIBLE
+                                    btnRegistrarEquipo.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                                    btnRegistrarEquipo.requestLayout()
+                                    btnCrearPartido.visibility = View.GONE
+                                    btnDropdownEquipo.text = "Sin equipo"
+                                } else {
+                                    mostrarAlerta("Error", "No se encontró equipo para eliminar")
+                                }
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {
+                                mostrarAlerta("Error", "Error al eliminar equipo: ${error.message}")
+                            }
+                        })
+                } else {
+                    mostrarAlerta("Error", "Usuario no autenticado")
+                }
+                true
+            }
             popup.show()
         }
 
