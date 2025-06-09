@@ -10,5 +10,3 @@ data class Partido(
     var jornada: String? = null,
     @Transient var id:String? = null
 )
-
-

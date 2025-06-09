@@ -21,7 +21,7 @@ class RegistrarEquipoActivity : AppCompatActivity() {
         val spinnerCategoria = findViewById<Spinner>(R.id.menuCategoria)
         val btnGuardar = findViewById<Button>(R.id.btnGuardarEquipo)
 
-        // Configuración del Spinner
+
         val categorias = listOf(
             "Senior Masc.", "Senior Fem.", "Juvenil Masc.", "Junior Fem.",
             "Cadete Masc.", "Cadete Fem.", "Infantil Masc.", "Infantil Fem.",
@@ -64,6 +64,5 @@ class RegistrarEquipoActivity : AppCompatActivity() {
                     Toast.makeText(this, "Error al guardar equipo: ${it.message}", Toast.LENGTH_SHORT).show()
                 }
         }
-
     }
 }

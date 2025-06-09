@@ -32,31 +32,31 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, iniciar_sesion::class.java))
         }
 
-        // Registro de usuario
+
         btnRegistrar.setOnClickListener {
             val nombre = etNombre.text.toString().trim()
             val email = etEmail.text.toString().trim()
-            val password = etContraseña.text.toString().trim()
+            val contraseña = etContraseña.text.toString().trim()
 
-            if (nombre.isEmpty() || email.isEmpty() || password.isEmpty()) {
+            if (nombre.isEmpty() || email.isEmpty() || contraseña.isEmpty()) {
                 mostrarAlerta("Campos incompletos", "Por favor, completa todos los campos.")
                 return@setOnClickListener
             }
 
-            if (password.length < 6) {
+            if (contraseña.length < 6) {
                 mostrarAlerta("Contraseña inválida", "La contraseña debe tener al menos 6 caracteres.")
                 return@setOnClickListener
             }
 
             btnRegistrar.isEnabled = false
 
-            auth.createUserWithEmailAndPassword(email, password)
+            auth.createUserWithEmailAndPassword(email, contraseña)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
                         val userId = auth.currentUser?.uid
                         val datosUsuario = mapOf(
                             "nombre" to nombre,
-                            "email" to email
+                            "email" to email,
                         )
 
                         val db = FirebaseDatabase.getInstance("https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/")
