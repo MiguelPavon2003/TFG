@@ -22,6 +22,7 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
     private lateinit var tvRival: TextView
     private lateinit var tvJornada: TextView
     private lateinit var tvFecha: TextView
+    private lateinit var tvTipo: TextView
 
     private lateinit var btnEmpezar: Button
     private lateinit var btnAcabar: Button
@@ -63,6 +64,7 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         tvRival = findViewById(R.id.tvRival)
         tvJornada = findViewById(R.id.tvJornada)
         tvFecha = findViewById(R.id.tvFecha)
+        tvTipo = findViewById(R.id.tvTipo)
 
         btnEmpezar = findViewById(R.id.btnEmpezarPartido)
         btnAcabar = findViewById(R.id.btnAcabarPartido)
@@ -88,11 +90,19 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         val rival = intent.getStringExtra("rival") ?: "Rival"
         val jornada = intent.getStringExtra("jornada") ?: ""
         val fecha = intent.getStringExtra("fecha") ?: "fecha"
+        val tipoPartido = intent.getStringExtra("tipo") ?: "tipo"
 
         tvEquipo.text = "Equipo: $nombreEquipo"
         tvRival.text = "Rival: $rival"
-        tvJornada.text = "Jornada: $jornada"
         tvFecha.text = "Fecha: $fecha"
+        tvTipo.text = "Tipo: $tipoPartido"
+
+        if (tipoPartido.equals("Liga", ignoreCase = true) && jornada.isNotBlank()) {
+            tvJornada.text = "Jornada: $jornada"
+            tvJornada.visibility = View.VISIBLE
+        } else {
+            tvJornada.visibility = View.GONE
+        }
 
         refEstadisticas = database.getReference("estadisticas").child(partidoId).child(nombreEquipo)
         refFinalizado = database.getReference("partidosFinalizados").child(partidoId)
