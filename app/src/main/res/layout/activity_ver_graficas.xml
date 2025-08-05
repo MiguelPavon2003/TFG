@@ -1,0 +1,45 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Gráfica de Tiro"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <com.example.miguelpavonlimones_tfg.BarChartCanvasView
+            android:id="@+id/graficaTiro"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:background="@android:color/white" />
+
+
+        <View android:layout_height="32dp" android:layout_width="match_parent" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Otras Estadísticas"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <com.example.miguelpavonlimones_tfg.BarChartCanvasView
+            android:id="@+id/graficaOtras"
+            android:layout_width="match_parent"
+            android:layout_height="400dp"
+            android:background="@android:color/white" />
+    </LinearLayout>
+</ScrollView>

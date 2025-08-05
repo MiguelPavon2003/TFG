@@ -8,7 +8,7 @@
     android:padding="16dp"
     tools:context=".RegistrarEquipoActivity">
 
-    <!-- Título -->
+
     <TextView
         android:id="@+id/tvTitulo"
         android:layout_width="wrap_content"
@@ -16,7 +16,7 @@
         android:text="Registrar equipo"
         android:textSize="22sp"
         android:textStyle="bold"
-        android:textColor="@android:color/white"
+        android:textColor="@color/white"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -48,13 +48,13 @@
                 android:layout_height="wrap_content"
                 android:hint="Nombre del equipo"
                 android:padding="12dp"
-                android:textColor="#000000"
+                android:textColor="@color/black"
                 android:textSize="16sp"
                 android:background="@drawable/edit_text_bg"
                 android:layout_marginBottom="16dp" />
 
             <Spinner
-                android:id="@+id/spinnerCategoria"
+                android:id="@+id/menuCategoria"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
