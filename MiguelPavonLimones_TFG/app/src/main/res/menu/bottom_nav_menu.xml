@@ -7,8 +7,13 @@
         android:title="Partidos" />
 
     <item
-        android:id="@+id/nav_usuario"
+        android:id="@+id/nav_jugadores"
         android:icon="@drawable/nav_usuario"
-        android:title="Configuracion"
+        android:title="Jugadores"
         />
+
+    <item
+        android:id="@+id/nav_configuracion"
+        android:icon="@drawable/nav_configuracion"
+        android:title="Configuracion"/>
 </menu>

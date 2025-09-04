@@ -7,113 +7,88 @@
     android:padding="16dp">
 
 
-    <androidx.cardview.widget.CardView
-        android:id="@+id/cardHeader"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        app:cardElevation="4dp"
-        app:cardCornerRadius="16dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="12dp"
-            android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnDropdownEquipo"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="Equipo"
-                android:textColor="@color/black"
-                android:textAllCaps="false"
-                app:icon="@drawable/mayor"
-                app:iconGravity="textEnd"
-                app:iconTint="@color/black"
-                app:cornerRadius="16dp"
-                app:backgroundTint="@color/white"
-                app:strokeColor="@color/gris"
-                app:strokeWidth="1dp" />
-
-            <Space android:layout_width="12dp" android:layout_height="wrap_content" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnDropdownUsuario"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="Usuario"
-                android:textColor="@android:color/black"
-                android:textAllCaps="false"
-                app:icon="@drawable/mayor"
-                app:iconGravity="textEnd"
-                app:iconTint="@color/black"
-                app:cornerRadius="16dp"
-                app:backgroundTint="@color/white"
-                app:strokeColor="@color/gris"
-                app:strokeWidth="1dp" />
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-
-    <androidx.cardview.widget.CardView
-        android:id="@+id/cardActions"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        app:cardElevation="4dp"
-        app:cardCornerRadius="16dp"
-        app:layout_constraintTop_toBottomOf="@id/cardHeader"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="12dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnRegistrarEquipo"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="Registrar equipo"
-                android:textColor="@color/white"
-                android:textAllCaps="false"
-                app:backgroundTint="@color/blue"
-                app:cornerRadius="16dp" />
-
-            <Space android:layout_width="12dp" android:layout_height="wrap_content" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCrearPartido"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="Crear partido"
-                android:textColor="@color/white"
-                android:textAllCaps="false"
-                app:backgroundTint="@color/blue"
-                app:cornerRadius="16dp" />
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewPartidos"
+    <ScrollView
+        android:id="@+id/scrollContenido"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:clipToPadding="false"
-        android:paddingTop="8dp"
-        app:layout_constraintTop_toBottomOf="@id/cardActions"
+        android:fillViewport="true"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- CardView con los botones -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardElevation="4dp"
+                app:cardCornerRadius="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDropdownEquipo"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Equipo"
+                        android:textColor="@color/white"
+                        android:textAllCaps="false"
+                        app:icon="@drawable/mayor"
+                        app:iconGravity="textEnd"
+                        app:iconTint="@color/white"
+                        app:cornerRadius="16dp"
+                        app:backgroundTint="@color/blue"
+                        app:strokeColor="@color/gris" />
+
+                    <Space android:layout_width="10dp" android:layout_height="wrap_content" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRegistrarEquipo"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Registrar equipo"
+                        android:textColor="@color/white"
+                        android:textAllCaps="false"
+                        app:backgroundTint="@color/blue"
+                        app:cornerRadius="16dp" />
+
+                    <Space android:layout_width="10dp" android:layout_height="wrap_content" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCrearPartido"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Crear partido"
+                        android:textColor="@color/white"
+                        android:textAllCaps="false"
+                        app:backgroundTint="@color/blue"
+                        app:cornerRadius="16dp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- RecyclerView dentro del scroll -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerViewPartidos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:paddingTop="8dp" />
+        </LinearLayout>
+    </ScrollView>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"

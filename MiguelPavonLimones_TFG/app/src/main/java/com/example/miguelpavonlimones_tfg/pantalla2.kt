@@ -11,20 +11,22 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+
 
 class pantalla2 : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var database: FirebaseDatabase
 
-    private lateinit var btnDropdownUsuario: MaterialButton
     private lateinit var btnDropdownEquipo: MaterialButton
     private lateinit var btnRegistrarEquipo: MaterialButton
     private lateinit var btnCrearPartido: MaterialButton
     private lateinit var recyclerViewPartidos: RecyclerView
+    private lateinit var bottomNavigation: BottomNavigationView
 
     private var nombreEquipoActual: String = ""
     private val listaPartidos = mutableListOf<Partido>()
@@ -37,11 +39,11 @@ class pantalla2 : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         database = FirebaseDatabase.getInstance("https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/")
 
-        btnDropdownUsuario = findViewById(R.id.btnDropdownUsuario)
         btnDropdownEquipo = findViewById(R.id.btnDropdownEquipo)
         btnRegistrarEquipo = findViewById(R.id.btnRegistrarEquipo)
         btnCrearPartido = findViewById(R.id.btnCrearPartido)
         recyclerViewPartidos = findViewById(R.id.recyclerViewPartidos)
+        bottomNavigation = findViewById(R.id.bottomNavigation)
 
         btnCrearPartido.visibility = View.GONE
 
@@ -78,9 +80,6 @@ class pantalla2 : AppCompatActivity() {
                     auth.signOut()
                     startActivity(Intent(this@pantalla2, MainActivity::class.java))
                     finish()
-                } else {
-                    val nombreUsuario = snapshot.child("nombre").value?.toString() ?: "Usuario"
-                    btnDropdownUsuario.text = "$nombreUsuario "
                 }
             }
 
@@ -111,54 +110,13 @@ class pantalla2 : AppCompatActivity() {
                 }
             })
 
-        btnDropdownUsuario.setOnClickListener {
-            val popup = PopupMenu(this, btnDropdownUsuario, Gravity.END)
-            val eliminarUsuario = popup.menu.add("Eliminar usuario")
-            val cerrarSesion = popup.menu.add("Cerrar sesión")
-            cerrarSesion.setOnMenuItemClickListener {
-                auth.signOut()
-                startActivity(Intent(this, MainActivity::class.java))
-                finish()
-                true
-            }
-            eliminarUsuario.setOnMenuItemClickListener {
-                val usuario = auth.currentUser
-                val uid = usuario?.uid
-
-                if (usuario != null && uid != null) {
-                    // Eliminar datos relacionados
-                    val databaseRef = database.reference
-                    val updates = hashMapOf<String, Any?>()
-                    updates["usuarios/$uid"] = null
-                    updates["partidos"] = null
-                    updates["equipos"] = null
-
-                    databaseRef.updateChildren(updates).addOnCompleteListener {
-                        usuario.delete().addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                mostrarAlerta("Éxito", "Usuario eliminado completamente")
-                                startActivity(Intent(this, MainActivity::class.java))
-                                finish()
-                            } else {
-                                mostrarAlerta("Error", "No se pudo eliminar el usuario: ${task.exception?.message}")
-                            }
-                        }
-                    }
-                } else {
-                    mostrarAlerta("Error", "No se pudo obtener el usuario actual")
-                }
-                true
-            }
-            popup.show()
-        }
-
         btnDropdownEquipo.setOnClickListener {
             val popup = PopupMenu(this, btnDropdownEquipo, Gravity.START)
             val borrarEquipo = popup.menu.add("Borrar equipo")
+            val cambiarEquipo = popup.menu.add("Cambiar equipo")
 
             borrarEquipo.setOnMenuItemClickListener {
                 val uid = auth.currentUser?.uid
-
                 if (uid != null) {
                     val ref = database.getReference("equipos")
                     ref.orderByChild("usuarioId").equalTo(uid)
@@ -169,7 +127,6 @@ class pantalla2 : AppCompatActivity() {
                                         equipoSnap.ref.removeValue()
                                     }
                                     mostrarAlerta("Éxito", "Equipo eliminado correctamente")
-
                                     btnRegistrarEquipo.visibility = View.VISIBLE
                                     btnRegistrarEquipo.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
                                     btnRegistrarEquipo.requestLayout()
@@ -189,6 +146,14 @@ class pantalla2 : AppCompatActivity() {
                 }
                 true
             }
+
+            cambiarEquipo.setOnMenuItemClickListener {
+                val intent = Intent(this, RegistrarEquipoActivity::class.java)
+                intent.putExtra("modoCambio", true)
+                startActivity(intent)
+                true
+            }
+
             popup.show()
         }
 
@@ -200,6 +165,31 @@ class pantalla2 : AppCompatActivity() {
             val intent = Intent(this, RegistrarPartidoActivity::class.java)
             intent.putExtra("nombreEquipo", nombreEquipoActual)
             startActivity(intent)
+        }
+
+
+        bottomNavigation.selectedItemId = R.id.nav_partidos
+        bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_partidos -> {
+                    true
+                }
+                R.id.nav_jugadores -> {
+                    if (this.javaClass != Jugadores::class.java) {
+                        startActivity(Intent(this, Jugadores::class.java))
+                        finish()
+                    }
+                    true
+                }
+                R.id.nav_configuracion -> {
+                    if (this.javaClass != Configuracion::class.java) {
+                        startActivity(Intent(this, Configuracion::class.java))
+                        finish()
+                    }
+                    true
+                }
+                else -> false
+            }
         }
     }
 

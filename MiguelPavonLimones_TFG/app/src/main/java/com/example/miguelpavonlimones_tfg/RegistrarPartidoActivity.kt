@@ -32,7 +32,7 @@ class RegistrarPartidoActivity : AppCompatActivity() {
         val radioVisitante = findViewById<RadioButton>(R.id.radioVisitante)
         val btnGuardar = findViewById<Button>(R.id.btnGuardarPartido)
 
-        val tipos = listOf("Amistoso", "Liga", "Torneo", "Entrenamiento", "Playoff")
+        val tipos = listOf("Pretemporada", "Liga", "Cuartos", "Semifinales", "Final")
         spinnerTipo.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, tipos)
 
 

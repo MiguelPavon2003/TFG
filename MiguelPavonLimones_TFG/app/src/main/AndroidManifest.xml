@@ -13,6 +13,18 @@
         android:theme="@style/Base.Theme.MiguelPavonLimones_TFG"
         tools:targetApi="31">
         <activity
+            android:name=".Configuracion"
+            android:exported="false" />
+        <activity
+            android:name=".Jugadores"
+            android:exported="false" />
+        <activity
+            android:name=".jugadores"
+            android:exported="false" />
+        <activity
+            android:name=".configuracion"
+            android:exported="false" />
+        <activity
             android:name=".VerGraficas"
             android:exported="false" />
         <activity
