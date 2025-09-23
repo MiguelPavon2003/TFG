@@ -28,6 +28,7 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
     private lateinit var btnAcabar: Button
     private lateinit var btnExportarPDF: Button
     private lateinit var btnVerGrafica: Button
+    private lateinit var btnSeleccionarJugadores: Button   // NUEVO
 
     private var puntosEquipo = 0
     private var tiros2Intentados = 0
@@ -54,6 +55,7 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
     private val database = FirebaseDatabase.getInstance("https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/")
     private lateinit var refEstadisticas: DatabaseReference
     private lateinit var refFinalizado: DatabaseReference
+    private lateinit var refConvocados: DatabaseReference      // NUEVO
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,6 +72,7 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         btnAcabar = findViewById(R.id.btnAcabarPartido)
         btnExportarPDF = findViewById(R.id.btnExportarPDF)
         btnVerGrafica = findViewById(R.id.btnVerGraficas)
+        btnSeleccionarJugadores = findViewById(R.id.btnSeleccionarJugadores) // NUEVO
 
         val btnTiroMetido: Button = findViewById(R.id.btnTiroMetido)
         val btnTiroFallado: Button = findViewById(R.id.btnTiroFallado)
@@ -105,7 +108,16 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         }
 
         refEstadisticas = database.getReference("estadisticas").child(partidoId).child(nombreEquipo)
-        refFinalizado = database.getReference("partidosFinalizados").child(partidoId)
+        refFinalizado   = database.getReference("partidosFinalizados").child(partidoId)
+        refConvocados   = database.getReference("convocados").child(partidoId) // NUEVO
+
+        // Botón Seleccionar jugadores -> abre selector
+        btnSeleccionarJugadores.setOnClickListener {
+            val intent = Intent(this, SelectJugadoresActivity::class.java)
+            intent.putExtra("partidoId", partidoId)
+            intent.putExtra("nombreEquipo", nombreEquipo)
+            startActivity(intent)
+        }
 
         refFinalizado.get().addOnSuccessListener { snapshot ->
             partidoFinalizado = snapshot.getValue(Boolean::class.java) == true
@@ -160,8 +172,8 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
                 .setItems(opciones) { _, which ->
                     when (which) {
                         0 -> { puntosEquipo += 1; tirosLibresAnotados++; tirosLibresIntentados++ }
-                        1 -> { puntosEquipo += 2; tiros2Anotados++; tiros2Intentados++ }
-                        2 -> { puntosEquipo += 3; tiros3Anotados++; tiros3Intentados++ }
+                        1 -> { puntosEquipo += 2; tiros2Anotados++;   tiros2Intentados++   }
+                        2 -> { puntosEquipo += 3; tiros3Anotados++;   tiros3Intentados++   }
                     }
                     tvPuntosEquipo.text = "Puntos: $puntosEquipo"
                     guardarEstadisticas()
@@ -194,10 +206,10 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         }
 
         btnAsistencias.setOnClickListener { asistencias++; guardarEstadisticas() }
-        btnRobos.setOnClickListener { robos++; guardarEstadisticas() }
-        btnTapones.setOnClickListener { tapones++; guardarEstadisticas() }
-        btnFaltas.setOnClickListener { faltas++; guardarEstadisticas() }
-        btnPerdidas.setOnClickListener { perdidas++; guardarEstadisticas() }
+        btnRobos.setOnClickListener     { robos++;       guardarEstadisticas() }
+        btnTapones.setOnClickListener   { tapones++;     guardarEstadisticas() }
+        btnFaltas.setOnClickListener    { faltas++;      guardarEstadisticas() }
+        btnPerdidas.setOnClickListener  { perdidas++;    guardarEstadisticas() }
 
         btnExportarPDF.setOnClickListener { exportarPDF(rival, fecha) }
 
@@ -223,6 +235,15 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
 
         estadisticaButtons.forEach { it.isEnabled = false }
         btnAcabar.visibility = View.GONE
+
+        // contador de convocados al entrar
+        actualizarConvocadosUI()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // refrescar contador al volver del selector
+        actualizarConvocadosUI()
     }
 
     private fun actualizarUI(finalizado: Boolean) {
@@ -232,6 +253,16 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
             btnAcabar.visibility = View.GONE
             Toast.makeText(this, "Este partido ya ha sido finalizado", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun actualizarConvocadosUI() {
+        if (!::refConvocados.isInitialized) return
+        refConvocados.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val count = snapshot.children.count { it.getValue(Boolean::class.java) == true }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
     }
 
     private fun exportarPDF(rival: String, fecha: String) {
@@ -254,7 +285,8 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         val totalCampoAciertos = tiros2Anotados + tiros3Anotados
         canvas.drawText("Tiros de campo: $totalCampoAciertos/$totalCampoIntentos", 50f, y.toFloat(), paint); y += 25
 
-        fun porcentaje(aciertos: Int, intentos: Int): String = if (intentos == 0) "0%" else "${(100 * aciertos / intentos)}%"
+        fun porcentaje(aciertos: Int, intentos: Int): String =
+            if (intentos == 0) "0%" else "${(100 * aciertos / intentos)}%"
 
         canvas.drawText("% Tiro 2: ${porcentaje(tiros2Anotados, tiros2Intentados)}", 50f, y.toFloat(), paint); y += 20
         canvas.drawText("% Triple: ${porcentaje(tiros3Anotados, tiros3Intentados)}", 50f, y.toFloat(), paint); y += 20
