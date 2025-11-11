@@ -20,8 +20,12 @@ class Jugadores : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseDatabase
     private var uid: String? = null
+
+    // Equipo actual (desde preferencias)
     private var nombreEquipoActual: String? = null
+    private var nombreEquipoCargado: String? = null
     private var refJugadores: DatabaseReference? = null
+    private var listenerJugadores: ValueEventListener? = null
 
     // Bottom nav
     private lateinit var bottomNavigation: BottomNavigationView
@@ -53,16 +57,16 @@ class Jugadores : AppCompatActivity() {
 
         // Firebase
         auth = FirebaseAuth.getInstance()
-        db = FirebaseDatabase.getInstance("https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/")
-        uid = auth.currentUser?.uid
+        db   = FirebaseDatabase.getInstance("https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/")
+        uid  = auth.currentUser?.uid
 
         // Referencias UI
-        bottomNavigation = findViewById(R.id.bottomNavigation)
-        etNomJugador = findViewById(R.id.etNomJugador)
-        etApellJugador = findViewById(R.id.etApellJugador)
-        etNumJugador = findViewById(R.id.etNumJugador)
-        btnGuardarJugador = findViewById(R.id.btnGuardarJugador)
-        tvFichas = findViewById(R.id.tvFichas)
+        bottomNavigation    = findViewById(R.id.bottomNavigation)
+        etNomJugador        = findViewById(R.id.etNomJugador)
+        etApellJugador      = findViewById(R.id.etApellJugador)
+        etNumJugador        = findViewById(R.id.etNumJugador)
+        btnGuardarJugador   = findViewById(R.id.btnGuardarJugador)
+        tvFichas            = findViewById(R.id.tvFichas)
         recyclerViewJugadores = findViewById(R.id.recyclerViewJugadores)
 
         // RecyclerView
@@ -107,17 +111,44 @@ class Jugadores : AppCompatActivity() {
             }
         }
 
-        // Cargar equipo actual y la ruta en Firebase
+        // Cargar equipo seleccionado y configurar ruta
         if (uid == null) {
             mostrarAlerta("Error", "Usuario no autenticado.")
             btnGuardarJugador.isEnabled = false
         } else {
-            cargarEquipoYConfigurarRutaJugadores(uid!!)
+            nombreEquipoActual = leerEquipoDesdePrefs()
+            if (nombreEquipoActual.isNullOrBlank()) {
+                // Fallback: si no hay selección guardada, tomamos el primero del usuario
+                cargarPrimerEquipoYConfigurarRuta(uid!!)
+            } else {
+                configurarRutaJugadores(uid!!, nombreEquipoActual!!)
+            }
         }
     }
 
-    /** 1) Obtiene el primer equipo del usuario, 2) configura la ruta y 3) escucha jugadores */
-    private fun cargarEquipoYConfigurarRutaJugadores(userId: String) {
+    override fun onResume() {
+        super.onResume()
+        // Por si el usuario cambió de equipo en pantalla2
+        val equipoPrefs = leerEquipoDesdePrefs()
+        if (uid != null && !equipoPrefs.isNullOrBlank() && equipoPrefs != nombreEquipoCargado) {
+            configurarRutaJugadores(uid!!, equipoPrefs!!)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Limpia listener para evitar fugas
+        quitarListener()
+    }
+
+    /** Lee el nombre del equipo seleccionado en SharedPreferences (lo guarda pantalla2 al elegir equipo) */
+    private fun leerEquipoDesdePrefs(): String? {
+        val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        return prefs.getString("equipoActualNombre", null)
+    }
+
+    /** Fallback: si no hay equipo en prefs, coger el primero del usuario y guardarlo en prefs */
+    private fun cargarPrimerEquipoYConfigurarRuta(userId: String) {
         val equipoRef = db.getReference("equipos")
         equipoRef.orderByChild("usuarioId").equalTo(userId)
             .addListenerForSingleValueEvent(object : ValueEventListener {
@@ -127,34 +158,38 @@ class Jugadores : AppCompatActivity() {
                         btnGuardarJugador.isEnabled = false
                         return
                     }
-
                     val equipoSnap = snapshot.children.first()
-                    nombreEquipoActual = equipoSnap.child("nombreEquipo").getValue(String::class.java)
-
-                    if (nombreEquipoActual.isNullOrBlank()) {
+                    val nombre = equipoSnap.child("nombreEquipo").getValue(String::class.java)
+                    if (nombre.isNullOrBlank()) {
                         mostrarAlerta("Error", "Nombre de equipo inválido.")
                         btnGuardarJugador.isEnabled = false
                         return
                     }
+                    // Guardar en prefs para coherencia con pantalla2
+                    getSharedPreferences("app_prefs", MODE_PRIVATE)
+                        .edit()
+                        .putString("equipoActualNombre", nombre)
+                        .apply()
 
-                    // Ruta: jugadores/{uid}/{nombreEquipo}
-                    refJugadores = db.getReference("jugadores")
-                        .child(userId)
-                        .child(nombreEquipoActual!!)
-
-                    // Escuchar lista de jugadores en tiempo real
-                    escucharJugadores()
+                    configurarRutaJugadores(userId, nombre)
                 }
-
                 override fun onCancelled(error: DatabaseError) {
                     mostrarAlerta("Error", "No se pudo cargar el equipo: ${error.message}")
                 }
             })
     }
 
-    /** Escucha cambios en Firebase y refresca lista/contador/orden (parseo manual) */
-    private fun escucharJugadores() {
-        refJugadores?.addValueEventListener(object : ValueEventListener {
+    /** Configura la ruta jugadores/{uid}/{equipo} y engancha listener */
+    private fun configurarRutaJugadores(userId: String, nombreEquipo: String) {
+        // Quitar listener anterior si hubiera
+        quitarListener()
+
+        nombreEquipoActual  = nombreEquipo
+        nombreEquipoCargado = nombreEquipo
+        refJugadores = db.getReference("jugadores").child(userId).child(nombreEquipo)
+
+        // Escuchar lista de jugadores en tiempo real
+        listenerJugadores = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 jugadores.clear()
                 clavesJugadores.clear()
@@ -164,6 +199,8 @@ class Jugadores : AppCompatActivity() {
                     val key = child.key ?: continue
                     val nombre = child.child("nombre").getValue(String::class.java) ?: ""
                     val apellido = child.child("apellido").getValue(String::class.java) ?: ""
+
+                    // dorsal puede venir como Int o Long
                     val dorsalInt = child.child("dorsal").getValue(Int::class.java)
                     val dorsalLong = child.child("dorsal").getValue(Long::class.java)
                     val dorsal = dorsalInt ?: dorsalLong?.toInt() ?: 0
@@ -173,15 +210,13 @@ class Jugadores : AppCompatActivity() {
                     nombresJugadores.add("$nombre $apellido")
                 }
 
-                // Orden por dorsal ascendente y reordenar claves igual
+                // Orden por dorsal y reorden de claves
                 val orden = jugadores.withIndex().sortedBy { it.value.dorsal }
                 val jugadoresOrdenados = orden.map { it.value }
                 val clavesOrdenadas = orden.map { clavesJugadores[it.index] }
 
-                jugadores.clear()
-                jugadores.addAll(jugadoresOrdenados)
-                clavesJugadores.clear()
-                clavesJugadores.addAll(clavesOrdenadas)
+                jugadores.clear(); jugadores.addAll(jugadoresOrdenados)
+                clavesJugadores.clear(); clavesJugadores.addAll(clavesOrdenadas)
 
                 adapter.notifyDataSetChanged()
                 actualizarFichas()
@@ -190,7 +225,18 @@ class Jugadores : AppCompatActivity() {
             override fun onCancelled(error: DatabaseError) {
                 mostrarAlerta("Error", "No se pudieron cargar los jugadores: ${error.message}")
             }
-        })
+        }
+
+        refJugadores?.addValueEventListener(listenerJugadores as ValueEventListener)
+        // Habilitar guardar si hay ruta
+        btnGuardarJugador.isEnabled = true
+    }
+
+    private fun quitarListener() {
+        listenerJugadores?.let { lst ->
+            refJugadores?.removeEventListener(lst)
+        }
+        listenerJugadores = null
     }
 
     private fun onGuardarJugador() {
@@ -236,7 +282,7 @@ class Jugadores : AppCompatActivity() {
                 etApellJugador.text?.clear()
                 etNumJugador.text?.clear()
                 etNomJugador.requestFocus()
-                // La lista y el contador se actualizan con el listener
+                // La lista y el contador se actualizan por el listener
             }
             .addOnFailureListener {
                 mostrarAlerta("Error", "No se pudo guardar el jugador: ${it.message}")
@@ -248,7 +294,6 @@ class Jugadores : AppCompatActivity() {
         val key = clavesJugadores[position]
         val ruta = refJugadores ?: return
 
-        // Solo borra en Firebase. El listener refresca la UI y el contador.
         ruta.child(key).removeValue()
             .addOnFailureListener {
                 mostrarAlerta("Error", "No se pudo eliminar el jugador: ${it.message}")

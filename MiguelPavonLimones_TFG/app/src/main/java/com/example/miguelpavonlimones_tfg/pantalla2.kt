@@ -16,7 +16,6 @@ import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 
-
 class pantalla2 : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
@@ -48,7 +47,8 @@ class pantalla2 : AppCompatActivity() {
         btnCrearPartido.visibility = View.GONE
 
         recyclerViewPartidos.layoutManager = LinearLayoutManager(this)
-        partidoAdapter = PartidoAdapter(listaPartidos,
+        partidoAdapter = PartidoAdapter(
+            listaPartidos,
             onItemClick = { partidoSeleccionado ->
                 val intent = Intent(this, PantallaDeEstadisticaActivity::class.java)
                 intent.putExtra("partidoId", partidoSeleccionado.id)
@@ -63,7 +63,6 @@ class pantalla2 : AppCompatActivity() {
                 mostrarConfirmacionEliminacion(partido)
             }
         )
-
         recyclerViewPartidos.adapter = partidoAdapter
 
         val userId = auth.currentUser?.uid
@@ -73,42 +72,21 @@ class pantalla2 : AppCompatActivity() {
             return
         }
 
-        val userRef = database.getReference("usuarios").child(userId)
-        userRef.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (!snapshot.exists()) {
-                    auth.signOut()
-                    startActivity(Intent(this@pantalla2, MainActivity::class.java))
-                    finish()
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                mostrarAlerta("Error", "Error al verificar usuario")
-            }
-        })
-
-        val equipoRef = database.getReference("equipos")
-        equipoRef.orderByChild("usuarioId").equalTo(userId)
+        // Verificación simple
+        database.getReference("usuarios").child(userId)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    if (snapshot.exists()) {
-                        val equipoSnap = snapshot.children.first()
-                        nombreEquipoActual = equipoSnap.child("nombreEquipo").value?.toString() ?: "Sin equipo"
-                        btnDropdownEquipo.text = "$nombreEquipoActual "
-                        btnCrearPartido.visibility = View.VISIBLE
-                        cargarPartidos(userId)
-                    } else {
-                        nombreEquipoActual = "Sin equipo"
-                        btnDropdownEquipo.text = nombreEquipoActual
-                        btnCrearPartido.visibility = View.GONE
+                    if (!snapshot.exists()) {
+                        auth.signOut()
+                        startActivity(Intent(this@pantalla2, MainActivity::class.java))
+                        finish()
                     }
                 }
-
-                override fun onCancelled(error: DatabaseError) {
-                    mostrarAlerta("Error", "Error al cargar equipo")
-                }
+                override fun onCancelled(error: DatabaseError) {}
             })
+
+        // Cargar equipos, decidir equipo activo y cargar partidos de ese equipo
+        cargarEquipoActivoYCargarPartidos(userId)
 
         btnDropdownEquipo.setOnClickListener {
             val popup = PopupMenu(this, btnDropdownEquipo, Gravity.START)
@@ -126,17 +104,20 @@ class pantalla2 : AppCompatActivity() {
                                     for (equipoSnap in snapshot.children) {
                                         equipoSnap.ref.removeValue()
                                     }
-                                    mostrarAlerta("Éxito", "Equipo eliminado correctamente")
+                                    mostrarAlerta("Éxito", "Equipo(s) eliminado(s) correctamente")
                                     btnRegistrarEquipo.visibility = View.VISIBLE
                                     btnRegistrarEquipo.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
                                     btnRegistrarEquipo.requestLayout()
                                     btnCrearPartido.visibility = View.GONE
-                                    btnDropdownEquipo.text = "Sin equipo"
+                                    nombreEquipoActual = "Sin equipo"
+                                    btnDropdownEquipo.text = nombreEquipoActual
+                                    guardarEquipoEnPrefs(null)
+                                    listaPartidos.clear()
+                                    partidoAdapter.notifyDataSetChanged()
                                 } else {
                                     mostrarAlerta("Error", "No se encontró equipo para eliminar")
                                 }
                             }
-
                             override fun onCancelled(error: DatabaseError) {
                                 mostrarAlerta("Error", "Error al eliminar equipo: ${error.message}")
                             }
@@ -148,9 +129,7 @@ class pantalla2 : AppCompatActivity() {
             }
 
             cambiarEquipo.setOnMenuItemClickListener {
-                val intent = Intent(this, RegistrarEquipoActivity::class.java)
-                intent.putExtra("modoCambio", true)
-                startActivity(intent)
+                mostrarSelectorEquipos() // <<< DIÁLOGO con nombres + categoría
                 true
             }
 
@@ -167,13 +146,10 @@ class pantalla2 : AppCompatActivity() {
             startActivity(intent)
         }
 
-
         bottomNavigation.selectedItemId = R.id.nav_partidos
         bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_partidos -> {
-                    true
-                }
+                R.id.nav_partidos -> true
                 R.id.nav_jugadores -> {
                     if (this.javaClass != Jugadores::class.java) {
                         startActivity(Intent(this, Jugadores::class.java))
@@ -193,7 +169,93 @@ class pantalla2 : AppCompatActivity() {
         }
     }
 
-    private fun cargarPartidos(userId: String) {
+    /** Carga equipos del usuario, decide equipo activo (prefs o primero) y carga partidos de ese equipo */
+    private fun cargarEquipoActivoYCargarPartidos(userId: String) {
+        val prefsEquipo = leerEquipoDePrefs()
+        val ref = database.getReference("equipos")
+        ref.orderByChild("usuarioId").equalTo(userId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (!snapshot.exists()) {
+                        nombreEquipoActual = "Sin equipo"
+                        btnDropdownEquipo.text = nombreEquipoActual
+                        btnCrearPartido.visibility = View.GONE
+                        guardarEquipoEnPrefs(null)
+                        listaPartidos.clear()
+                        partidoAdapter.notifyDataSetChanged()
+                        return
+                    }
+
+                    // Equipos del usuario
+                    val equipos = snapshot.children.mapNotNull {
+                        val nombre = it.child("nombreEquipo").getValue(String::class.java)
+                        val cat    = it.child("categoria").getValue(String::class.java) ?: ""
+                        if (!nombre.isNullOrBlank()) Pair(nombre, cat) else null
+                    }
+
+                    // Elegir equipo activo: el de prefs si existe en la lista, si no, el primero
+                    val candidato = equipos.firstOrNull { it.first == prefsEquipo }?.first
+                        ?: equipos.first().first
+
+                    nombreEquipoActual = candidato
+                    btnDropdownEquipo.text = candidato
+                    btnCrearPartido.visibility = View.VISIBLE
+
+                    guardarEquipoEnPrefs(candidato)
+                    cargarPartidosParaEquipo(userId, candidato)
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    mostrarAlerta("Error", "Error al cargar equipo: ${error.message}")
+                }
+            })
+    }
+
+    /** Diálogo de selección simple con “Nombre (Categoría)” y aplica selección */
+    private fun mostrarSelectorEquipos() {
+        val uid = auth.currentUser?.uid ?: return
+        val ref = database.getReference("equipos")
+        ref.orderByChild("usuarioId").equalTo(uid)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (!snapshot.exists()) {
+                        mostrarAlerta("Sin equipos", "No tienes equipos registrados.")
+                        return
+                    }
+
+                    val nombres   = mutableListOf<String>()
+                    val categorias= mutableListOf<String>()
+                    for (child in snapshot.children) {
+                        val n = child.child("nombreEquipo").getValue(String::class.java) ?: continue
+                        val c = child.child("categoria").getValue(String::class.java) ?: ""
+                        nombres.add(n); categorias.add(c)
+                    }
+
+                    val items = nombres.mapIndexed { i, n ->
+                        if (categorias[i].isNotBlank()) "$n (${categorias[i]})" else n
+                    }.toTypedArray()
+
+                    AlertDialog.Builder(this@pantalla2)
+                        .setTitle("Elige equipo")
+                        .setItems(items) { _, which ->
+                            val nuevo = nombres[which]
+                            if (nuevo != nombreEquipoActual) {
+                                nombreEquipoActual = nuevo
+                                btnDropdownEquipo.text = nuevo
+                                guardarEquipoEnPrefs(nuevo)
+                                cargarPartidosParaEquipo(uid, nuevo)
+                            }
+                        }
+                        .show()
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    mostrarAlerta("Error", "No se pudieron cargar los equipos: ${error.message}")
+                }
+            })
+    }
+
+    /** Carga los partidos del usuario filtrando por el equipo seleccionado */
+    private fun cargarPartidosParaEquipo(userId: String, equipo: String) {
         val partidosRef = database.getReference("partidos")
         partidosRef.orderByChild("usuarioId").equalTo(userId)
             .addListenerForSingleValueEvent(object : ValueEventListener {
@@ -203,16 +265,17 @@ class pantalla2 : AppCompatActivity() {
                         val partido = snap.getValue(Partido::class.java)
                         partido?.let {
                             it.id = snap.key
-                            if (it.nombreEquipo.isNullOrBlank()) {
-                                it.nombreEquipo = nombreEquipoActual
+                            // Asegura el nombreEquipo
+                            if (it.nombreEquipo.isNullOrBlank()) it.nombreEquipo = equipo
+                            // Filtrado por equipo activo
+                            if (it.nombreEquipo == equipo) {
+                                listaPartidos.add(it)
                             }
-                            listaPartidos.add(it)
                         }
                     }
                     listaPartidos.sortByDescending { it.fecha }
                     partidoAdapter.notifyDataSetChanged()
                 }
-
                 override fun onCancelled(error: DatabaseError) {
                     mostrarAlerta("Error", "No se pudieron cargar los partidos: ${error.message}")
                 }
@@ -220,29 +283,43 @@ class pantalla2 : AppCompatActivity() {
     }
 
     private fun mostrarConfirmacionEliminacion(partido: Partido) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Eliminar partido")
-        builder.setMessage("¿Estás seguro de que quieres eliminar este partido?")
-        builder.setPositiveButton("Sí") { _, _ ->
-            partido.id?.let { id ->
-                val ref = database.getReference("partidos").child(id)
-                ref.removeValue().addOnSuccessListener {
-                    listaPartidos.remove(partido)
-                    partidoAdapter.notifyDataSetChanged()
-                }.addOnFailureListener {
-                    mostrarAlerta("Error", "No se pudo eliminar el partido: ${it.message}")
+        AlertDialog.Builder(this)
+            .setTitle("Eliminar partido")
+            .setMessage("¿Estás seguro de que quieres eliminar este partido?")
+            .setPositiveButton("Sí") { _, _ ->
+                partido.id?.let { id ->
+                    database.getReference("partidos").child(id).removeValue()
+                        .addOnSuccessListener {
+                            listaPartidos.remove(partido)
+                            partidoAdapter.notifyDataSetChanged()
+                        }
+                        .addOnFailureListener {
+                            mostrarAlerta("Error", "No se pudo eliminar el partido: ${it.message}")
+                        }
                 }
             }
-        }
-        builder.setNegativeButton("No", null)
-        builder.show()
+            .setNegativeButton("No", null)
+            .show()
     }
 
     private fun mostrarAlerta(titulo: String, mensaje: String) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle(titulo)
+        AlertDialog.Builder(this)
+            .setTitle(titulo)
             .setMessage(mensaje)
             .setPositiveButton("OK", null)
             .show()
+    }
+
+    // ===== SharedPreferences helpers =====
+    private fun guardarEquipoEnPrefs(nombre: String?) {
+        val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE).edit()
+        if (nombre.isNullOrBlank()) prefs.remove("equipoActualNombre")
+        else prefs.putString("equipoActualNombre", nombre)
+        prefs.apply()
+    }
+
+    private fun leerEquipoDePrefs(): String? {
+        return getSharedPreferences("app_prefs", MODE_PRIVATE)
+            .getString("equipoActualNombre", null)
     }
 }
