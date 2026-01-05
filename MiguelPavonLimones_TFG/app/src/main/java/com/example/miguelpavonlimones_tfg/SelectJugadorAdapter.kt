@@ -22,6 +22,8 @@ class SelectJugadorAdapter(
     private val onSelectionChanged: (selectedCount: Int) -> Unit
 ) : RecyclerView.Adapter<SelectJugadorAdapter.VH>() {
 
+    private var locked: Boolean = false
+
     class VH(v: View) : RecyclerView.ViewHolder(v) {
         val cb: CheckBox = v.findViewById(R.id.cbSeleccion)
         val tvNombre: TextView = v.findViewById(R.id.tvNombre)
@@ -36,18 +38,29 @@ class SelectJugadorAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val j = datos[position]
+
         holder.tvNombre.text = "${j.nombre} ${j.apellido}"
         holder.tvDorsal.text = "#${j.dorsal}"
-        // Evitar “rebotes” de listener
+
+        // Evitar rebotes
         holder.cb.setOnCheckedChangeListener(null)
         holder.cb.isChecked = j.selected
 
+        // Si está bloqueado, no se puede tocar
+        holder.cb.isEnabled = !locked
+        holder.itemView.isEnabled = !locked
+        holder.itemView.alpha = if (locked) 0.6f else 1f
+
         holder.cb.setOnCheckedChangeListener { button, isChecked ->
+            if (locked) {
+                button.isChecked = j.selected
+                return@setOnCheckedChangeListener
+            }
+
             val selectedCount = datos.count { it.selected }
+
             if (isChecked) {
-                // Intento marcar uno más
                 if (selectedCount >= maxSeleccion) {
-                    // Límite alcanzado
                     button.isChecked = false
                     Toast.makeText(
                         holder.itemView.context,
@@ -60,16 +73,33 @@ class SelectJugadorAdapter(
             } else {
                 j.selected = false
             }
+
             onSelectionChanged(datos.count { it.selected })
         }
 
-        // También permite pulsar toda la fila
+        // Pulsar fila = toggle checkbox
         holder.itemView.setOnClickListener {
-            holder.cb.performClick()
+            if (!locked) holder.cb.performClick()
         }
     }
 
     override fun getItemCount(): Int = datos.size
 
     fun getSeleccionados(): List<SelJugador> = datos.filter { it.selected }
+
+    /** Llamar cuando se guarde para bloquear cambios */
+    fun setLocked(value: Boolean) {
+        locked = value
+        notifyDataSetChanged()
+    }
+
+    fun isLocked(): Boolean = locked
+
+    /** Útil para refrescar lista si recargas desde Firebase */
+    fun setItems(nuevos: List<SelJugador>) {
+        datos.clear()
+        datos.addAll(nuevos)
+        notifyDataSetChanged()
+        onSelectionChanged(datos.count { it.selected })
+    }
 }

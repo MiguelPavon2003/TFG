@@ -5,7 +5,6 @@
     android:padding="16dp"
     android:background="@color/azul_claro">
 
-
     <LinearLayout
         android:id="@+id/layoutInfoPartido"
         android:layout_width="match_parent"
@@ -79,7 +78,6 @@
         </LinearLayout>
     </LinearLayout>
 
-
     <ImageView
         android:id="@+id/imgCancha"
         android:layout_width="match_parent"
@@ -87,7 +85,6 @@
         android:layout_below="@id/layoutInfoPartido"
         android:scaleType="fitCenter"
         android:src="@drawable/cancha_basket" />
-
 
     <LinearLayout
         android:id="@+id/layoutBotonesTop"
@@ -124,7 +121,6 @@
             android:layout_marginStart="8dp" />
     </LinearLayout>
 
-
     <Button
         android:id="@+id/btnEmpezarPartido"
         android:layout_width="match_parent"
@@ -135,13 +131,12 @@
         android:textColor="@android:color/white"
         android:backgroundTint="@color/blue" />
 
-
     <ScrollView
         android:id="@+id/scrollEstadisticas"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/btnEmpezarPartido"
-        android:layout_above="@id/btnAcabarPartido"
+        android:layout_above="@id/btnPausaPartido"
         android:layout_marginTop="16dp">
 
         <LinearLayout
@@ -149,7 +144,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
-
 
             <LinearLayout
                 android:id="@+id/filaTiros"
@@ -175,7 +169,6 @@
                     android:layout_margin="4dp" />
             </LinearLayout>
 
-
             <LinearLayout
                 android:id="@+id/filaRebotesAsistencias"
                 android:layout_width="match_parent"
@@ -199,7 +192,6 @@
                     android:text="Asistencia"
                     android:layout_margin="4dp" />
             </LinearLayout>
-
 
             <LinearLayout
                 android:id="@+id/filaRobosTapones"
@@ -252,6 +244,16 @@
     </ScrollView>
 
     <Button
+        android:id="@+id/btnPausaPartido"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/btnAcabarPartido"
+        android:text="Pausar"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@color/blue"
+        android:visibility="gone" />
+
+    <Button
         android:id="@+id/btnAcabarPartido"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -259,4 +261,5 @@
         android:text="Acabar Partido"
         android:textColor="@android:color/white"
         android:backgroundTint="@color/blue" />
+
 </RelativeLayout>

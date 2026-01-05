@@ -30,6 +30,8 @@ class SelectJugadoresActivity : AppCompatActivity() {
     private var nombreEquipo: String = ""
     private val maxSeleccion = 12
 
+    private var convocatoriaBloqueada = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_select_jugadores)
@@ -42,8 +44,8 @@ class SelectJugadoresActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseDatabase.getInstance("https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/")
 
-        partidoId   = intent.getStringExtra("partidoId") ?: ""
-        nombreEquipo= intent.getStringExtra("nombreEquipo") ?: ""
+        partidoId    = intent.getStringExtra("partidoId") ?: ""
+        nombreEquipo = intent.getStringExtra("nombreEquipo") ?: ""
 
         val uid = auth.currentUser?.uid
         if (uid.isNullOrEmpty() || partidoId.isEmpty() || nombreEquipo.isEmpty()) {
@@ -55,29 +57,55 @@ class SelectJugadoresActivity : AppCompatActivity() {
         refJugadores  = db.getReference("jugadores").child(uid).child(nombreEquipo)
         refConvocados = db.getReference("convocados").child(partidoId)
 
-        adapter = SelectJugadorAdapter(lista, maxSeleccion) { count ->
+        adapter = SelectJugadorAdapter(
+            datos = lista,
+            maxSeleccion = maxSeleccion
+        ) { count ->
             tvContador.text = "($count/$maxSeleccion)"
         }
-        rv.layoutManager = LinearLayoutManager(this)
-        rv.adapter = adapter
 
-        cargarJugadoresYConvocados()
+        rv.layoutManager = LinearLayoutManager(this)
+        rv.setHasFixedSize(true)
+        rv.adapter = adapter
 
         btnGuardar.setOnClickListener { guardarSeleccion() }
         btnCancelar.setOnClickListener { finish() }
+
+        cargarJugadoresYConvocados()
     }
 
-    /** Carga jugadores y marca los ya convocados */
+    /** Carga jugadores, convocados y comprueba si ya está bloqueado */
     private fun cargarJugadoresYConvocados() {
-        // Primero leemos convocados para marcar luego
         refConvocados.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(convocadosSnap: DataSnapshot) {
-                val yaConvocados = convocadosSnap.children
-                    .filter { it.getValue(Boolean::class.java) == true }
-                    .mapNotNull { it.key }
-                    .toSet()
 
-                // Ahora leemos jugadores
+                // 1) Leer metadatos de forma segura
+                convocatoriaBloqueada = (convocadosSnap.child("_locked").value as? Boolean) == true
+                val equipoGuardado = convocadosSnap.child("_equipo").getValue(String::class.java)
+
+                // Si ya hay equipo guardado y no coincide con el actual -> bloquear (evita mezclar)
+                if (!equipoGuardado.isNullOrBlank() && equipoGuardado != nombreEquipo) {
+                    convocatoriaBloqueada = true
+                    Toast.makeText(
+                        this@SelectJugadoresActivity,
+                        "La convocatoria pertenece al equipo \"$equipoGuardado\" y no se puede cambiar.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+
+                // 2) Sacar claves convocadas TRUE (solo boolean true)
+                val yaConvocados = mutableSetOf<String>()
+                for (child in convocadosSnap.children) {
+                    val key = child.key ?: continue
+                    if (key == "_locked" || key == "_equipo") continue
+
+                    val v = child.value
+                    if (v is Boolean && v) {
+                        yaConvocados.add(key)
+                    }
+                }
+
+                // 3) Leer jugadores del equipo
                 refJugadores.addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(jugSnap: DataSnapshot) {
                         lista.clear()
@@ -86,6 +114,7 @@ class SelectJugadoresActivity : AppCompatActivity() {
                             val key = child.key ?: continue
                             val nombre = child.child("nombre").getValue(String::class.java) ?: ""
                             val apellido = child.child("apellido").getValue(String::class.java) ?: ""
+
                             val dorsalInt = child.child("dorsal").getValue(Int::class.java)
                             val dorsalLong = child.child("dorsal").getValue(Long::class.java)
                             val dorsal = dorsalInt ?: dorsalLong?.toInt() ?: 0
@@ -105,53 +134,83 @@ class SelectJugadoresActivity : AppCompatActivity() {
                         lista.sortBy { it.dorsal }
                         adapter.notifyDataSetChanged()
 
-                        // Actualizar contador inicial
-                        tvContador.text = "(${lista.count { it.selected }}/$maxSeleccion)"
+                        val count = lista.count { it.selected }
+                        tvContador.text = "($count/$maxSeleccion)"
+
+                        aplicarBloqueoUI()
                     }
 
                     override fun onCancelled(error: DatabaseError) {
-                        Toast.makeText(this@SelectJugadoresActivity, "Error al cargar jugadores: ${error.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            this@SelectJugadoresActivity,
+                            "Error al cargar jugadores: ${error.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 })
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@SelectJugadoresActivity, "Error al leer convocados: ${error.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@SelectJugadoresActivity,
+                    "Error al leer convocados: ${error.message}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         })
     }
 
-    /** Guarda selección en /convocados/{partidoId}/{key} = true/false */
+    /** Si está bloqueado: no se puede modificar ni guardar */
+    private fun aplicarBloqueoUI() {
+        if (convocatoriaBloqueada) {
+            btnGuardar.isEnabled = false
+            btnGuardar.text = "Convocados guardados"
+            adapter.setLocked(true)
+        } else {
+            btnGuardar.isEnabled = true
+            btnGuardar.text = "Guardar"
+            adapter.setLocked(false)
+        }
+    }
+
+    /** Guarda selección en /convocados/{partidoId} y bloquea */
     private fun guardarSeleccion() {
+        if (convocatoriaBloqueada) {
+            Toast.makeText(this, "La convocatoria ya está cerrada", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val seleccionados = adapter.getSeleccionados()
-        val updates = hashMapOf<String, Any?>()
 
-        // Primero, marcar todos a false (o eliminarlos) para dejar solo los actuales
-        // Opción A (mantener historial): ponemos false a los no seleccionados existentes
-        // Cargamos las claves actuales y decidimos:
-        refConvocados.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                // Poner false a todos los que existan
-                for (child in snapshot.children) {
-                    updates[child.key!!] = false
-                }
-                // Poner true a los seleccionados
-                for (s in seleccionados) {
-                    updates[s.key] = true
-                }
+        if (seleccionados.size > maxSeleccion) {
+            Toast.makeText(this, "Máximo $maxSeleccion jugadores", Toast.LENGTH_LONG).show()
+            return
+        }
 
-                refConvocados.updateChildren(updates).addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Toast.makeText(this@SelectJugadoresActivity, "Convocados guardados", Toast.LENGTH_SHORT).show()
-                        finish()
-                    } else {
-                        Toast.makeText(this@SelectJugadoresActivity, "Error al guardar", Toast.LENGTH_LONG).show()
-                    }
-                }
+        // Reescritura completa (simple y limpia)
+        val nuevoNodo = hashMapOf<String, Any?>()
+
+        for (s in seleccionados) {
+            nuevoNodo[s.key] = true
+        }
+
+        // Metadatos
+        nuevoNodo["_equipo"] = nombreEquipo
+        nuevoNodo["_locked"] = true
+
+        refConvocados.setValue(nuevoNodo).addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Toast.makeText(this, "Convocados guardados", Toast.LENGTH_SHORT).show()
+                convocatoriaBloqueada = true
+                aplicarBloqueoUI()
+                finish()
+            } else {
+                Toast.makeText(
+                    this,
+                    "Error al guardar: ${task.exception?.message ?: ""}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
-            override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@SelectJugadoresActivity, "Error al actualizar: ${error.message}", Toast.LENGTH_LONG).show()
-            }
-        })
+        }
     }
 }

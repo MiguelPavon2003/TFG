@@ -26,9 +26,10 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
 
     private lateinit var btnEmpezar: Button
     private lateinit var btnAcabar: Button
+    private lateinit var btnPausa: Button
     private lateinit var btnExportarPDF: Button
     private lateinit var btnVerGrafica: Button
-    private lateinit var btnSeleccionarJugadores: Button   // NUEVO
+    private lateinit var btnSeleccionarJugadores: Button
 
     private var puntosEquipo = 0
     private var tiros2Intentados = 0
@@ -50,12 +51,18 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
     private var nombreEquipo = ""
     private var partidoFinalizado = false
 
+    // Estado del partido
+    private var partidoEmpezado = false
+    private var estadisticasPausadas = false
+
     private lateinit var estadisticaButtons: List<Button>
 
-    private val database = FirebaseDatabase.getInstance("https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/")
+    private val database = FirebaseDatabase.getInstance(
+        "https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/"
+    )
     private lateinit var refEstadisticas: DatabaseReference
     private lateinit var refFinalizado: DatabaseReference
-    private lateinit var refConvocados: DatabaseReference      // NUEVO
+    private lateinit var refConvocados: DatabaseReference
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,9 +77,10 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
 
         btnEmpezar = findViewById(R.id.btnEmpezarPartido)
         btnAcabar = findViewById(R.id.btnAcabarPartido)
+        btnPausa = findViewById(R.id.btnPausaPartido)
         btnExportarPDF = findViewById(R.id.btnExportarPDF)
         btnVerGrafica = findViewById(R.id.btnVerGraficas)
-        btnSeleccionarJugadores = findViewById(R.id.btnSeleccionarJugadores) // NUEVO
+        btnSeleccionarJugadores = findViewById(R.id.btnSeleccionarJugadores)
 
         val btnTiroMetido: Button = findViewById(R.id.btnTiroMetido)
         val btnTiroFallado: Button = findViewById(R.id.btnTiroFallado)
@@ -108,10 +116,10 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         }
 
         refEstadisticas = database.getReference("estadisticas").child(partidoId).child(nombreEquipo)
-        refFinalizado   = database.getReference("partidosFinalizados").child(partidoId)
-        refConvocados   = database.getReference("convocados").child(partidoId) // NUEVO
+        refFinalizado = database.getReference("partidosFinalizados").child(partidoId)
+        refConvocados = database.getReference("convocados").child(partidoId)
 
-        // Botón Seleccionar jugadores -> abre selector
+        // Abrir selector
         btnSeleccionarJugadores.setOnClickListener {
             val intent = Intent(this, SelectJugadoresActivity::class.java)
             intent.putExtra("partidoId", partidoId)
@@ -119,11 +127,13 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        // ¿Finalizado?
         refFinalizado.get().addOnSuccessListener { snapshot ->
             partidoFinalizado = snapshot.getValue(Boolean::class.java) == true
             actualizarUI(partidoFinalizado)
         }
 
+        // Cargar stats + estado
         refEstadisticas.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 puntosEquipo = snapshot.child("puntosEquipo").getValue(Int::class.java) ?: 0
@@ -141,7 +151,32 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
                 tapones = snapshot.child("tapones").getValue(Int::class.java) ?: 0
                 faltas = snapshot.child("faltas").getValue(Int::class.java) ?: 0
                 perdidas = snapshot.child("perdidas").getValue(Int::class.java) ?: 0
+
+                partidoEmpezado = snapshot.child("partidoEmpezado").getValue(Boolean::class.java) ?: false
+                estadisticasPausadas = snapshot.child("estadisticasPausadas").getValue(Boolean::class.java) ?: false
+
                 tvPuntosEquipo.text = "Puntos: $puntosEquipo"
+
+                if (!partidoFinalizado) {
+                    if (!partidoEmpezado) {
+                        estadisticaButtons.forEach { it.isEnabled = false }
+                        btnEmpezar.visibility = View.VISIBLE
+                        btnAcabar.visibility = View.GONE
+                        btnPausa.visibility = View.GONE
+                    } else {
+                        btnEmpezar.visibility = View.GONE
+                        btnAcabar.visibility = View.VISIBLE
+                        btnPausa.visibility = View.VISIBLE
+
+                        if (estadisticasPausadas) {
+                            estadisticaButtons.forEach { it.isEnabled = false }
+                            btnPausa.text = "Reanudar"
+                        } else {
+                            estadisticaButtons.forEach { it.isEnabled = true }
+                            btnPausa.text = "Pausar"
+                        }
+                    }
+                }
             }
             override fun onCancelled(error: DatabaseError) {}
         })
@@ -163,17 +198,20 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
             ref.child("tapones").setValue(tapones)
             ref.child("faltas").setValue(faltas)
             ref.child("perdidas").setValue(perdidas)
+            ref.child("partidoEmpezado").setValue(partidoEmpezado)
+            ref.child("estadisticasPausadas").setValue(estadisticasPausadas)
         }
 
         btnTiroMetido.setOnClickListener {
+            if (estadisticasPausadas) return@setOnClickListener
             val opciones = arrayOf("Tiro libre (1p)", "Tiro de 2 (2p)", "Triple (3p)")
             AlertDialog.Builder(this)
                 .setTitle("Tipo de tiro metido")
                 .setItems(opciones) { _, which ->
                     when (which) {
                         0 -> { puntosEquipo += 1; tirosLibresAnotados++; tirosLibresIntentados++ }
-                        1 -> { puntosEquipo += 2; tiros2Anotados++;   tiros2Intentados++   }
-                        2 -> { puntosEquipo += 3; tiros3Anotados++;   tiros3Intentados++   }
+                        1 -> { puntosEquipo += 2; tiros2Anotados++; tiros2Intentados++ }
+                        2 -> { puntosEquipo += 3; tiros3Anotados++; tiros3Intentados++ }
                     }
                     tvPuntosEquipo.text = "Puntos: $puntosEquipo"
                     guardarEstadisticas()
@@ -181,6 +219,7 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         }
 
         btnTiroFallado.setOnClickListener {
+            if (estadisticasPausadas) return@setOnClickListener
             val opciones = arrayOf("Tiro libre fallado", "Tiro de 2 fallado", "Triple fallado")
             AlertDialog.Builder(this)
                 .setTitle("Tipo de tiro fallado")
@@ -195,6 +234,7 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         }
 
         btnRebotes.setOnClickListener {
+            if (estadisticasPausadas) return@setOnClickListener
             val opciones = arrayOf("Ofensivo", "Defensivo")
             AlertDialog.Builder(this)
                 .setTitle("Tipo de rebote")
@@ -205,11 +245,11 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
                 }.show()
         }
 
-        btnAsistencias.setOnClickListener { asistencias++; guardarEstadisticas() }
-        btnRobos.setOnClickListener     { robos++;       guardarEstadisticas() }
-        btnTapones.setOnClickListener   { tapones++;     guardarEstadisticas() }
-        btnFaltas.setOnClickListener    { faltas++;      guardarEstadisticas() }
-        btnPerdidas.setOnClickListener  { perdidas++;    guardarEstadisticas() }
+        btnAsistencias.setOnClickListener { if (!estadisticasPausadas) { asistencias++; guardarEstadisticas() } }
+        btnRobos.setOnClickListener { if (!estadisticasPausadas) { robos++; guardarEstadisticas() } }
+        btnTapones.setOnClickListener { if (!estadisticasPausadas) { tapones++; guardarEstadisticas() } }
+        btnFaltas.setOnClickListener { if (!estadisticasPausadas) { faltas++; guardarEstadisticas() } }
+        btnPerdidas.setOnClickListener { if (!estadisticasPausadas) { perdidas++; guardarEstadisticas() } }
 
         btnExportarPDF.setOnClickListener { exportarPDF(rival, fecha) }
 
@@ -221,28 +261,55 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         }
 
         btnEmpezar.setOnClickListener {
+            partidoEmpezado = true
+            estadisticasPausadas = false
+
             estadisticaButtons.forEach { it.isEnabled = true }
             btnEmpezar.visibility = View.GONE
             btnAcabar.visibility = View.VISIBLE
+
+            btnPausa.visibility = View.VISIBLE
+            btnPausa.text = "Pausar"
+
+            refEstadisticas.child("partidoEmpezado").setValue(true)
+            refEstadisticas.child("estadisticasPausadas").setValue(false)
+        }
+
+        btnPausa.setOnClickListener {
+            if (!partidoEmpezado) return@setOnClickListener
+
+            estadisticasPausadas = !estadisticasPausadas
+
+            if (estadisticasPausadas) {
+                estadisticaButtons.forEach { it.isEnabled = false }
+                btnPausa.text = "Reanudar"
+                Toast.makeText(this, "Estadísticas en pausa", Toast.LENGTH_SHORT).show()
+            } else {
+                estadisticaButtons.forEach { it.isEnabled = true }
+                btnPausa.text = "Pausar"
+                Toast.makeText(this, "Estadísticas reanudadas", Toast.LENGTH_SHORT).show()
+            }
+
+            refEstadisticas.child("estadisticasPausadas").setValue(estadisticasPausadas)
         }
 
         btnAcabar.setOnClickListener {
             estadisticaButtons.forEach { it.isEnabled = false }
             btnAcabar.visibility = View.GONE
+            btnPausa.visibility = View.GONE
             database.getReference("partidosFinalizados").child(partidoId).setValue(true)
             Toast.makeText(this, "Partido finalizado", Toast.LENGTH_SHORT).show()
         }
 
         estadisticaButtons.forEach { it.isEnabled = false }
         btnAcabar.visibility = View.GONE
+        btnPausa.visibility = View.GONE
 
-        // contador de convocados al entrar
         actualizarConvocadosUI()
     }
 
     override fun onResume() {
         super.onResume()
-        // refrescar contador al volver del selector
         actualizarConvocadosUI()
     }
 
@@ -251,16 +318,31 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
             estadisticaButtons.forEach { it.isEnabled = false }
             btnEmpezar.visibility = View.GONE
             btnAcabar.visibility = View.GONE
+            btnPausa.visibility = View.GONE
             Toast.makeText(this, "Este partido ya ha sido finalizado", Toast.LENGTH_LONG).show()
         }
     }
 
+    // ✅ CAMBIO AQUÍ: NO leer Strings como Boolean (evita crash por _equipo)
     private fun actualizarConvocadosUI() {
         if (!::refConvocados.isInitialized) return
+
         refConvocados.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val count = snapshot.children.count { it.getValue(Boolean::class.java) == true }
+                var count = 0
+
+                for (child in snapshot.children) {
+                    val key = child.key ?: continue
+                    if (key == "_equipo" || key == "_locked") continue
+
+                    val v = child.value
+                    if (v is Boolean && v) count++
+                }
+
+                // Si quieres que se vea en el botón:
+                btnSeleccionarJugadores.text = "Jugadores"
             }
+
             override fun onCancelled(error: DatabaseError) {}
         })
     }
