@@ -24,8 +24,9 @@
             android:layout_height="300dp"
             android:background="@android:color/white" />
 
-
-        <View android:layout_height="32dp" android:layout_width="match_parent" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="32dp" />
 
         <TextView
             android:layout_width="match_parent"
@@ -41,5 +42,38 @@
             android:layout_width="match_parent"
             android:layout_height="400dp"
             android:background="@android:color/white" />
+
+        <!-- ✅ NUEVO BLOQUE: TABLA -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="24dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tabla de jugadores"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fillViewport="true"
+            android:background="@android:color/white"
+            android:padding="8dp">
+
+            <TableLayout
+                android:id="@+id/tableJugadores"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:stretchColumns="1" />
+        </HorizontalScrollView>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="24dp" />
+
     </LinearLayout>
 </ScrollView>

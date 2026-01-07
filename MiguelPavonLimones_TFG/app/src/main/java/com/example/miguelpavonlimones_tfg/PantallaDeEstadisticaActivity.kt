@@ -2,6 +2,7 @@ package com.example.miguelpavonlimones_tfg
 
 import android.app.AlertDialog
 import android.content.Intent
+import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import android.os.Bundle
 import android.os.Environment
@@ -10,6 +11,7 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import java.io.File
 import java.io.FileOutputStream
@@ -57,12 +59,26 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
 
     private lateinit var estadisticaButtons: List<Button>
 
+    private val auth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabase.getInstance(
         "https://miguelpavonlimones-tfg-default-rtdb.europe-west1.firebasedatabase.app/"
     )
+
     private lateinit var refEstadisticas: DatabaseReference
     private lateinit var refFinalizado: DatabaseReference
     private lateinit var refConvocados: DatabaseReference
+    private lateinit var refStatsJugador: DatabaseReference
+
+    // Convocados
+    data class Convocado(
+        val key: String,
+        val nombre: String,
+        val apellido: String,
+        val dorsal: Int
+    )
+
+    private val convocados = mutableListOf<Convocado>()
+    private var convocatoriaBloqueada = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,6 +134,7 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         refEstadisticas = database.getReference("estadisticas").child(partidoId).child(nombreEquipo)
         refFinalizado = database.getReference("partidosFinalizados").child(partidoId)
         refConvocados = database.getReference("convocados").child(partidoId)
+        refStatsJugador = database.getReference("estadisticasJugador").child(partidoId)
 
         // Abrir selector
         btnSeleccionarJugadores.setOnClickListener {
@@ -181,7 +198,7 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
             override fun onCancelled(error: DatabaseError) {}
         })
 
-        fun guardarEstadisticas() {
+        fun guardarEstadisticasEquipo() {
             val ref = refEstadisticas
             ref.child("puntosEquipo").setValue(puntosEquipo)
             ref.child("tiros2Intentados").setValue(tiros2Intentados)
@@ -202,35 +219,53 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
             ref.child("estadisticasPausadas").setValue(estadisticasPausadas)
         }
 
-        btnTiroMetido.setOnClickListener {
+        // -------------------------
+        // CLICKs con selección jugador
+        // -------------------------
+
+        btnAsistencias.setOnClickListener {
             if (estadisticasPausadas) return@setOnClickListener
-            val opciones = arrayOf("Tiro libre (1p)", "Tiro de 2 (2p)", "Triple (3p)")
-            AlertDialog.Builder(this)
-                .setTitle("Tipo de tiro metido")
-                .setItems(opciones) { _, which ->
-                    when (which) {
-                        0 -> { puntosEquipo += 1; tirosLibresAnotados++; tirosLibresIntentados++ }
-                        1 -> { puntosEquipo += 2; tiros2Anotados++; tiros2Intentados++ }
-                        2 -> { puntosEquipo += 3; tiros3Anotados++; tiros3Intentados++ }
-                    }
-                    tvPuntosEquipo.text = "Puntos: $puntosEquipo"
-                    guardarEstadisticas()
-                }.show()
+            elegirConvocado("¿Quién dio la asistencia?") { c ->
+                asistencias++
+                guardarEstadisticasEquipo()
+                incJugador(c, "asistencias", 1)
+            }
         }
 
-        btnTiroFallado.setOnClickListener {
+        btnRobos.setOnClickListener {
             if (estadisticasPausadas) return@setOnClickListener
-            val opciones = arrayOf("Tiro libre fallado", "Tiro de 2 fallado", "Triple fallado")
-            AlertDialog.Builder(this)
-                .setTitle("Tipo de tiro fallado")
-                .setItems(opciones) { _, which ->
-                    when (which) {
-                        0 -> tirosLibresIntentados++
-                        1 -> tiros2Intentados++
-                        2 -> tiros3Intentados++
-                    }
-                    guardarEstadisticas()
-                }.show()
+            elegirConvocado("¿Quién hizo el robo?") { c ->
+                robos++
+                guardarEstadisticasEquipo()
+                incJugador(c, "robos", 1)
+            }
+        }
+
+        btnTapones.setOnClickListener {
+            if (estadisticasPausadas) return@setOnClickListener
+            elegirConvocado("¿Quién hizo el tapón?") { c ->
+                tapones++
+                guardarEstadisticasEquipo()
+                incJugador(c, "tapones", 1)
+            }
+        }
+
+        btnFaltas.setOnClickListener {
+            if (estadisticasPausadas) return@setOnClickListener
+            elegirConvocado("¿Quién cometió la falta?") { c ->
+                faltas++
+                guardarEstadisticasEquipo()
+                incJugador(c, "faltas", 1)
+            }
+        }
+
+        btnPerdidas.setOnClickListener {
+            if (estadisticasPausadas) return@setOnClickListener
+            elegirConvocado("¿Quién perdió el balón?") { c ->
+                perdidas++
+                guardarEstadisticasEquipo()
+                incJugador(c, "perdidas", 1)
+            }
         }
 
         btnRebotes.setOnClickListener {
@@ -239,18 +274,87 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
             AlertDialog.Builder(this)
                 .setTitle("Tipo de rebote")
                 .setItems(opciones) { _, which ->
-                    rebotes++
-                    if (which == 0) reboteOfensivo++ else reboteDefensivo++
-                    guardarEstadisticas()
+                    elegirConvocado("¿Quién cogió el rebote?") { c ->
+                        rebotes++
+                        if (which == 0) reboteOfensivo++ else reboteDefensivo++
+                        guardarEstadisticasEquipo()
+
+                        incJugador(c, "rebotes", 1)
+                        if (which == 0) incJugador(c, "rebOf", 1) else incJugador(c, "rebDef", 1)
+                    }
                 }.show()
         }
 
-        btnAsistencias.setOnClickListener { if (!estadisticasPausadas) { asistencias++; guardarEstadisticas() } }
-        btnRobos.setOnClickListener { if (!estadisticasPausadas) { robos++; guardarEstadisticas() } }
-        btnTapones.setOnClickListener { if (!estadisticasPausadas) { tapones++; guardarEstadisticas() } }
-        btnFaltas.setOnClickListener { if (!estadisticasPausadas) { faltas++; guardarEstadisticas() } }
-        btnPerdidas.setOnClickListener { if (!estadisticasPausadas) { perdidas++; guardarEstadisticas() } }
+        btnTiroMetido.setOnClickListener {
+            if (estadisticasPausadas) return@setOnClickListener
+            elegirConvocado("¿Quién anotó?") { c ->
+                val opciones = arrayOf("Tiro libre (1p)", "Tiro de 2 (2p)", "Triple (3p)")
+                AlertDialog.Builder(this)
+                    .setTitle("Tipo de tiro metido")
+                    .setItems(opciones) { _, which ->
+                        when (which) {
+                            0 -> {
+                                puntosEquipo += 1
+                                tirosLibresAnotados++; tirosLibresIntentados++
+                                guardarEstadisticasEquipo()
 
+                                incJugador(c, "puntos", 1)
+                                incJugador(c, "tlAno", 1)
+                                incJugador(c, "tlInt", 1)
+                            }
+                            1 -> {
+                                puntosEquipo += 2
+                                tiros2Anotados++; tiros2Intentados++
+                                guardarEstadisticasEquipo()
+
+                                incJugador(c, "puntos", 2)
+                                incJugador(c, "t2Ano", 1)
+                                incJugador(c, "t2Int", 1)
+                            }
+                            2 -> {
+                                puntosEquipo += 3
+                                tiros3Anotados++; tiros3Intentados++
+                                guardarEstadisticasEquipo()
+
+                                incJugador(c, "puntos", 3)
+                                incJugador(c, "t3Ano", 1)
+                                incJugador(c, "t3Int", 1)
+                            }
+                        }
+                        tvPuntosEquipo.text = "Puntos: $puntosEquipo"
+                    }.show()
+            }
+        }
+
+        btnTiroFallado.setOnClickListener {
+            if (estadisticasPausadas) return@setOnClickListener
+            elegirConvocado("¿Quién tiró?") { c ->
+                val opciones = arrayOf("Tiro libre fallado", "Tiro de 2 fallado", "Triple fallado")
+                AlertDialog.Builder(this)
+                    .setTitle("Tipo de tiro fallado")
+                    .setItems(opciones) { _, which ->
+                        when (which) {
+                            0 -> {
+                                tirosLibresIntentados++
+                                guardarEstadisticasEquipo()
+                                incJugador(c, "tlInt", 1)
+                            }
+                            1 -> {
+                                tiros2Intentados++
+                                guardarEstadisticasEquipo()
+                                incJugador(c, "t2Int", 1)
+                            }
+                            2 -> {
+                                tiros3Intentados++
+                                guardarEstadisticasEquipo()
+                                incJugador(c, "t3Int", 1)
+                            }
+                        }
+                    }.show()
+            }
+        }
+
+        // Exportar PDF (ahora con tabla de jugadores)
         btnExportarPDF.setOnClickListener { exportarPDF(rival, fecha) }
 
         btnVerGrafica.setOnClickListener {
@@ -305,12 +409,13 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         btnAcabar.visibility = View.GONE
         btnPausa.visibility = View.GONE
 
-        actualizarConvocadosUI()
+        // Cargar convocatoria para elegir jugadores y actualizar texto botón
+        cargarConvocadosYActualizarBoton()
     }
 
     override fun onResume() {
         super.onResume()
-        actualizarConvocadosUI()
+        cargarConvocadosYActualizarBoton()
     }
 
     private fun actualizarUI(finalizado: Boolean) {
@@ -323,81 +428,297 @@ class PantallaDeEstadisticaActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ CAMBIO AQUÍ: NO leer Strings como Boolean (evita crash por _equipo)
-    private fun actualizarConvocadosUI() {
-        if (!::refConvocados.isInitialized) return
+    // -------------------------
+    // CONVOCADOS + BOTÓN
+    // -------------------------
+
+    private fun cargarConvocadosYActualizarBoton() {
+        val uid = auth.currentUser?.uid ?: return
 
         refConvocados.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                var count = 0
+            override fun onDataChange(convSnap: DataSnapshot) {
 
-                for (child in snapshot.children) {
+                convocatoriaBloqueada = convSnap.child("_locked").getValue(Boolean::class.java) == true
+
+                var count = 0
+                for (child in convSnap.children) {
                     val key = child.key ?: continue
                     if (key == "_equipo" || key == "_locked") continue
-
                     val v = child.value
                     if (v is Boolean && v) count++
                 }
 
-                // Si quieres que se vea en el botón:
-                btnSeleccionarJugadores.text = "Jugadores"
+                btnSeleccionarJugadores.text = "Selec. Juga."
+
+                if (!convocatoriaBloqueada) {
+                    convocados.clear()
+                    return
+                }
+
+                val keys = convSnap.children
+                    .filter { it.key != "_locked" && it.key != "_equipo" }
+                    .filter { it.value is Boolean && it.getValue(Boolean::class.java) == true }
+                    .mapNotNull { it.key }
+                    .toList()
+
+                if (keys.isEmpty()) {
+                    convocados.clear()
+                    return
+                }
+
+                val refJugEquipo = database.getReference("jugadores").child(uid).child(nombreEquipo)
+                refJugEquipo.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(jugSnap: DataSnapshot) {
+                        convocados.clear()
+
+                        for (k in keys) {
+                            val nodo = jugSnap.child(k)
+                            if (!nodo.exists()) continue
+
+                            val nombre = nodo.child("nombre").getValue(String::class.java) ?: ""
+                            val apellido = nodo.child("apellido").getValue(String::class.java) ?: ""
+                            val dorsalInt = nodo.child("dorsal").getValue(Int::class.java)
+                            val dorsalLong = nodo.child("dorsal").getValue(Long::class.java)
+                            val dorsal = dorsalInt ?: dorsalLong?.toInt() ?: 0
+
+                            val c = Convocado(k, nombre, apellido, dorsal)
+                            convocados.add(c)
+                            asegurarJugadorStatsBase(c)
+                        }
+
+                        convocados.sortBy { it.dorsal }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {}
+                })
             }
 
             override fun onCancelled(error: DatabaseError) {}
         })
     }
 
-    private fun exportarPDF(rival: String, fecha: String) {
-        val pdfDocument = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
-        val page = pdfDocument.startPage(pageInfo)
-        val canvas = page.canvas
-        val paint = android.graphics.Paint().apply { textSize = 16f }
-
-        var y = 50
-        canvas.drawText("Estadísticas del partido", 220f, y.toFloat(), paint)
-        y += 30
-
-        canvas.drawText("Puntos: $puntosEquipo", 50f, y.toFloat(), paint); y += 25
-        canvas.drawText("Tiros de 2: $tiros2Anotados/$tiros2Intentados", 50f, y.toFloat(), paint); y += 25
-        canvas.drawText("Tiros de 3: $tiros3Anotados/$tiros3Intentados", 50f, y.toFloat(), paint); y += 25
-        canvas.drawText("Tiros libres: $tirosLibresAnotados/$tirosLibresIntentados", 50f, y.toFloat(), paint); y += 25
-
-        val totalCampoIntentos = tiros2Intentados + tiros3Intentados
-        val totalCampoAciertos = tiros2Anotados + tiros3Anotados
-        canvas.drawText("Tiros de campo: $totalCampoAciertos/$totalCampoIntentos", 50f, y.toFloat(), paint); y += 25
-
-        fun porcentaje(aciertos: Int, intentos: Int): String =
-            if (intentos == 0) "0%" else "${(100 * aciertos / intentos)}%"
-
-        canvas.drawText("% Tiro 2: ${porcentaje(tiros2Anotados, tiros2Intentados)}", 50f, y.toFloat(), paint); y += 20
-        canvas.drawText("% Triple: ${porcentaje(tiros3Anotados, tiros3Intentados)}", 50f, y.toFloat(), paint); y += 20
-        canvas.drawText("% Tiro libre: ${porcentaje(tirosLibresAnotados, tirosLibresIntentados)}", 50f, y.toFloat(), paint); y += 30
-
-        canvas.drawText("Rebotes: $rebotes (Of: $reboteOfensivo / Def: $reboteDefensivo)", 50f, y.toFloat(), paint); y += 20
-        canvas.drawText("Asistencias: $asistencias", 50f, y.toFloat(), paint); y += 20
-        canvas.drawText("Robos: $robos", 50f, y.toFloat(), paint); y += 20
-        canvas.drawText("Tapones: $tapones", 50f, y.toFloat(), paint); y += 20
-        canvas.drawText("Faltas: $faltas", 50f, y.toFloat(), paint); y += 20
-        canvas.drawText("Pérdidas: $perdidas", 50f, y.toFloat(), paint)
-
-        pdfDocument.finishPage(page)
-
-        val EquipoUsuario = nombreEquipo.replace(" ", "_")
-        val EquipoRival = rival.replace(" ", "_")
-        val FechaPartido = fecha.replace("/", "-")
-        val fileName = "${EquipoUsuario}_vs_${EquipoRival}_${FechaPartido}.pdf"
-
-        val downloadsPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val file = File(downloadsPath, fileName)
-
-        try {
-            pdfDocument.writeTo(FileOutputStream(file))
-            Toast.makeText(this, "PDF guardado en Descargas", Toast.LENGTH_LONG).show()
-        } catch (e: IOException) {
-            Toast.makeText(this, "Error al guardar PDF: ${e.message}", Toast.LENGTH_LONG).show()
+    private fun elegirConvocado(titulo: String, onPick: (Convocado) -> Unit) {
+        if (!convocatoriaBloqueada || convocados.isEmpty()) {
+            Toast.makeText(this, "Primero guarda la convocatoria", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        pdfDocument.close()
+        val items = convocados.map { "#${it.dorsal} ${it.nombre} ${it.apellido}" }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle(titulo)
+            .setItems(items) { _, which -> onPick(convocados[which]) }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun asegurarJugadorStatsBase(c: Convocado) {
+        val base = mapOf(
+            "nombre" to c.nombre,
+            "apellido" to c.apellido,
+            "dorsal" to c.dorsal
+        )
+        refStatsJugador.child(c.key).updateChildren(base)
+    }
+
+    private fun incJugador(c: Convocado, campo: String, cantidad: Long) {
+        asegurarJugadorStatsBase(c)
+        refStatsJugador.child(c.key).child(campo).setValue(ServerValue.increment(cantidad))
+    }
+
+    // -------------------------
+    // PDF con tabla
+    // -------------------------
+
+    private data class JugStats(
+        val dorsal: Int,
+        val nombre: String,
+        val apellido: String,
+        val puntos: Int,
+        val ast: Int,
+        val reb: Int,
+        val rob: Int,
+        val tap: Int,
+        val fal: Int,
+        val per: Int,
+        val t2: String,
+        val t3: String,
+        val tl: String
+    )
+
+    private fun exportarPDF(rival: String, fecha: String) {
+        // Leer estadísticas por jugador primero
+        refStatsJugador.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snap: DataSnapshot) {
+
+                val jugadoresStats = mutableListOf<JugStats>()
+
+                for (child in snap.children) {
+                    val nombre = child.child("nombre").getValue(String::class.java) ?: ""
+                    val apellido = child.child("apellido").getValue(String::class.java) ?: ""
+
+                    val dorsalInt = child.child("dorsal").getValue(Int::class.java)
+                    val dorsalLong = child.child("dorsal").getValue(Long::class.java)
+                    val dorsal = dorsalInt ?: dorsalLong?.toInt() ?: 0
+
+                    fun gi(k: String): Int {
+                        val i = child.child(k).getValue(Int::class.java)
+                        val l = child.child(k).getValue(Long::class.java)
+                        return i ?: l?.toInt() ?: 0
+                    }
+
+                    val t2Int = gi("t2Int")
+                    val t2Ano = gi("t2Ano")
+                    val t3Int = gi("t3Int")
+                    val t3Ano = gi("t3Ano")
+                    val tlInt = gi("tlInt")
+                    val tlAno = gi("tlAno")
+
+                    jugadoresStats.add(
+                        JugStats(
+                            dorsal = dorsal,
+                            nombre = nombre,
+                            apellido = apellido,
+                            puntos = gi("puntos"),
+                            ast = gi("asistencias"),
+                            reb = gi("rebotes"),
+                            rob = gi("robos"),
+                            tap = gi("tapones"),
+                            fal = gi("faltas"),
+                            per = gi("perdidas"),
+                            t2 = "$t2Ano/$t2Int",
+                            t3 = "$t3Ano/$t3Int",
+                            tl = "$tlAno/$tlInt"
+                        )
+                    )
+                }
+
+                jugadoresStats.sortBy { it.dorsal }
+
+                // Crear PDF
+                val pdfDocument = PdfDocument()
+                val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
+                val page = pdfDocument.startPage(pageInfo)
+                val canvas = page.canvas
+
+                val paintTitle = Paint().apply { textSize = 18f; isFakeBoldText = true }
+                val paintText = Paint().apply { textSize = 12f }
+                val paintHeader = Paint().apply { textSize = 12f; isFakeBoldText = true }
+                val paintLine = Paint().apply { strokeWidth = 1f }
+
+                var y = 40
+
+                canvas.drawText("Estadísticas del partido", 180f, y.toFloat(), paintTitle)
+                y += 22
+                canvas.drawText("Equipo: $nombreEquipo   Rival: $rival   Fecha: $fecha", 40f, y.toFloat(), paintText)
+                y += 22
+
+                // Resumen equipo
+                canvas.drawText("Puntos: $puntosEquipo", 40f, y.toFloat(), paintText); y += 16
+                canvas.drawText("T2: $tiros2Anotados/$tiros2Intentados   T3: $tiros3Anotados/$tiros3Intentados   TL: $tirosLibresAnotados/$tirosLibresIntentados", 40f, y.toFloat(), paintText)
+                y += 18
+                canvas.drawText("Reb: $rebotes (Of $reboteOfensivo / Def $reboteDefensivo)  Ast: $asistencias  Rob: $robos  Tap: $tapones  Fal: $faltas  Per: $perdidas", 40f, y.toFloat(), paintText)
+                y += 22
+
+                // Título tabla
+                canvas.drawText("Tabla de jugadores", 40f, y.toFloat(), paintHeader)
+                y += 10
+
+                // Tabla: columnas
+                val startX = 40f
+                val tableW = 515f
+                val rowH = 18f
+
+                val cols = listOf(
+                    "D" to 30f,
+                    "Jugador" to 160f,
+                    "PTS" to 35f,
+                    "AST" to 35f,
+                    "REB" to 35f,
+                    "ROB" to 35f,
+                    "TAP" to 35f,
+                    "FAL" to 35f,
+                    "PER" to 35f,
+                    "T2" to 45f,
+                    "T3" to 45f,
+                    "TL" to 45f
+                )
+
+                fun drawRowBorder(top: Float) {
+                    canvas.drawLine(startX, top, startX + tableW, top, paintLine)
+                }
+
+                // Borde superior
+                drawRowBorder(y.toFloat())
+
+                // Cabecera
+                y += rowH.toInt()
+                var x = startX
+                for (c in cols) {
+                    canvas.drawText(c.first, x + 2f, y - 4f, paintHeader)
+                    x += c.second
+                }
+
+                // Borde debajo cabecera
+                drawRowBorder(y.toFloat())
+
+                // Filas
+                for (js in jugadoresStats) {
+                    // salto de página si hace falta
+                    if (y + rowH + 30 > 842) break
+
+                    y += rowH.toInt()
+                    x = startX
+
+                    val jugadorTxt = "${js.nombre} ${js.apellido}".take(18)
+
+                    val values = listOf(
+                        js.dorsal.toString(),
+                        jugadorTxt,
+                        js.puntos.toString(),
+                        js.ast.toString(),
+                        js.reb.toString(),
+                        js.rob.toString(),
+                        js.tap.toString(),
+                        js.fal.toString(),
+                        js.per.toString(),
+                        js.t2,
+                        js.t3,
+                        js.tl
+                    )
+
+                    for (i in values.indices) {
+                        canvas.drawText(values[i], x + 2f, y - 4f, paintText)
+                        x += cols[i].second
+                    }
+
+                    drawRowBorder(y.toFloat())
+                }
+
+                // Cerrar página
+                pdfDocument.finishPage(page)
+
+                val EquipoUsuario = nombreEquipo.replace(" ", "_")
+                val EquipoRival = rival.replace(" ", "_")
+                val FechaPartido = fecha.replace("/", "-")
+                val fileName = "${EquipoUsuario}_vs_${EquipoRival}_${FechaPartido}.pdf"
+
+                val downloadsPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val file = File(downloadsPath, fileName)
+
+                try {
+                    pdfDocument.writeTo(FileOutputStream(file))
+                    Toast.makeText(this@PantallaDeEstadisticaActivity, "PDF guardado en Descargas", Toast.LENGTH_LONG).show()
+                } catch (e: IOException) {
+                    Toast.makeText(this@PantallaDeEstadisticaActivity, "Error al guardar PDF: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+
+                pdfDocument.close()
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Toast.makeText(this@PantallaDeEstadisticaActivity, "Error leyendo stats jugador: ${error.message}", Toast.LENGTH_LONG).show()
+            }
+        })
     }
 }
